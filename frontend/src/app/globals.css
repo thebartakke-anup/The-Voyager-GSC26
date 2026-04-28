@@ -1,0 +1,71 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #0a0e27;
+  --surface: #1a1f3a;
+  --accent-primary: #00d4ff;
+  --accent-secondary: #ff006e;
+  --success: #00ff41;
+  --warning: #ffd60a;
+  --danger: #ff006e;
+  --text-primary: #e0e0ff;
+  --text-secondary: #a0a0c0;
+  --border: #2a3555;
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  background-color: var(--bg);
+  color: var(--text-primary);
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--surface);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-primary);
+}
+
+.mapboxgl-map {
+  border-radius: 8px;
+}
+
+.neon-glow {
+  text-shadow: 0 0 10px var(--accent-primary), 0 0 20px var(--accent-primary);
+}
+
+.neon-border {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+}
+
+.glass-card {
+  background: rgba(26, 31, 58, 0.8);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+}
