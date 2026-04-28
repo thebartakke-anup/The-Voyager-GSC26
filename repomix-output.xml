@@ -1,0 +1,4046 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+.gitignore
+backend/.env.example
+backend/migrations/001_initial_schema.sql
+backend/package.json
+backend/seeds/seed.ts
+backend/src/config/database.ts
+backend/src/config/env.ts
+backend/src/controllers/authController.ts
+backend/src/controllers/captainReportController.ts
+backend/src/controllers/disruptionController.ts
+backend/src/controllers/portController.ts
+backend/src/controllers/recommendationController.ts
+backend/src/controllers/shipmentController.ts
+backend/src/controllers/simulationController.ts
+backend/src/index.ts
+backend/src/middleware/auth.ts
+backend/src/middleware/errorHandler.ts
+backend/src/routes/auth.ts
+backend/src/routes/captainReports.ts
+backend/src/routes/disruptions.ts
+backend/src/routes/ports.ts
+backend/src/routes/recommendations.ts
+backend/src/routes/shipments.ts
+backend/src/routes/simulation.ts
+backend/src/services/geminiService.ts
+backend/src/services/simulationService.ts
+backend/src/websocket/wsHandler.ts
+backend/tsconfig.json
+docker-compose.yml
+frontend/.env.example
+frontend/next-env.d.ts
+frontend/next.config.mjs
+frontend/package.json
+frontend/postcss.config.js
+frontend/src/app/captain/page.tsx
+frontend/src/app/dashboard/page.tsx
+frontend/src/app/globals.css
+frontend/src/app/layout.tsx
+frontend/src/app/login/page.tsx
+frontend/src/app/page.tsx
+frontend/src/app/shipments/[id]/page.tsx
+frontend/src/app/shipments/page.tsx
+frontend/src/components/disruptions/DisruptionList.tsx
+frontend/src/components/map/WorldMap.tsx
+frontend/src/components/simulation/SimulationControls.tsx
+frontend/src/components/ui/StatusBadge.tsx
+frontend/src/hooks/useAuth.ts
+frontend/src/hooks/useSimulation.ts
+frontend/src/hooks/useWebSocket.ts
+frontend/src/lib/api.ts
+frontend/src/lib/constants.ts
+frontend/src/types/index.ts
+frontend/tailwind.config.ts
+frontend/tsconfig.json
+README.md
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path=".gitignore">
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# TypeScript
+*.tsbuildinfo
+
+# Testing
+coverage/
+</file>
+
+<file path="backend/.env.example">
+# Voyagers Tribute - Environment Variables Template
+# Copy this file to .env and fill in your actual values
+
+# ============================================
+# DATABASE
+# ============================================
+DATABASE_URL=postgresql://postgres:password@localhost:5432/voyagers_db
+
+# ============================================
+# AUTHENTICATION
+# ============================================
+# JWT Secret key - use a strong random string in production
+# Generate with: openssl rand -hex 32
+JWT_SECRET=your-super-secret-key-change-in-production-min-32-characters
+
+# ============================================
+# AI/ML SERVICES
+# ============================================
+# Google Gemini API Key - get from https://ai.google.dev
+GEMINI_API_KEY=your-gemini-api-key-here
+
+# ============================================
+# SERVER CONFIGURATION
+# ============================================
+PORT=3001
+NODE_ENV=development
+LOG_LEVEL=info
+
+# ============================================
+# FRONTEND
+# ============================================
+# URL where frontend is hosted (for CORS)
+FRONTEND_URL=http://localhost:3000
+
+# ============================================
+# WEBSOCKET
+# ============================================
+# WebSocket server URL for real-time updates
+WS_URL=ws://localhost:3001
+
+# ============================================
+# RATE LIMITING
+# ============================================
+# Time window for rate limiting in milliseconds (15 minutes = 900000)
+RATE_LIMIT_WINDOW_MS=900000
+
+# Maximum requests per window
+RATE_LIMIT_MAX_REQUESTS=500
+
+# ============================================
+# JWT CONFIGURATION
+# ============================================
+# JWT token expiry time
+JWT_EXPIRY=24h
+
+# ============================================
+# DEVELOPMENT ONLY
+# ============================================
+# Set to true to enable debug logging
+DEBUG=false
+
+# Seed database on startup (development only)
+AUTO_SEED=false
+</file>
+
+<file path="backend/migrations/001_initial_schema.sql">
+-- Voyagers Tribute Maritime Supply Chain Intelligence Platform
+-- Initial Schema Migration
+
+-- Enable UUID extension
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+-- Ports Table (created first due to foreign key dependencies)
+CREATE TABLE IF NOT EXISTS ports (
+  id VARCHAR(10) PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  country VARCHAR(100),
+  lat DECIMAL(10, 8),
+  lng DECIMAL(11, 8),
+  timezone VARCHAR(50),
+  congestion_level DECIMAL(3, 2) DEFAULT 0.3,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Users Table
+CREATE TABLE IF NOT EXISTS users (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email VARCHAR(255) UNIQUE NOT NULL,
+  password_hash VARCHAR(255),
+  role VARCHAR(20) NOT NULL CHECK (role IN ('CAPTAIN', 'BUYER', 'SELLER', 'ADMIN')),
+  first_name VARCHAR(100),
+  last_name VARCHAR(100),
+  company_name VARCHAR(255),
+  home_port_id VARCHAR(10) REFERENCES ports(id),
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Vessels Table
+CREATE TABLE IF NOT EXISTS vessels (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  imo VARCHAR(10) UNIQUE NOT NULL,
+  name VARCHAR(255),
+  vessel_type VARCHAR(50),
+  capacity_teu INT,
+  max_speed_knots DECIMAL(5, 2),
+  fuel_consumption_per_hour DECIMAL(8, 2),
+  current_captain_id UUID REFERENCES users(id),
+  current_fuel_percent DECIMAL(5, 2),
+  engine_status VARCHAR(50) DEFAULT 'OPERATIONAL',
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Shipments Table
+CREATE TABLE IF NOT EXISTS shipments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  shipment_id_display VARCHAR(50) UNIQUE,
+  seller_id UUID NOT NULL REFERENCES users(id),
+  buyer_id UUID NOT NULL REFERENCES users(id),
+  vessel_id UUID NOT NULL REFERENCES vessels(id),
+  origin_port_id VARCHAR(10) NOT NULL REFERENCES ports(id),
+  destination_port_id VARCHAR(10) NOT NULL REFERENCES ports(id),
+  cargo_type VARCHAR(100),
+  cargo_weight_tons DECIMAL(10, 2),
+  cargo_containers INT,
+  cargo_value_usd DECIMAL(15, 2),
+  departure_date TIMESTAMP NOT NULL,
+  scheduled_arrival TIMESTAMP NOT NULL,
+  current_eta TIMESTAMP,
+  sla_deadline TIMESTAMP,
+  sla_penalty_per_day_usd DECIMAL(10, 2),
+  status VARCHAR(50) DEFAULT 'PLANNED',
+  current_lat DECIMAL(10, 8),
+  current_lng DECIMAL(11, 8),
+  current_speed_knots DECIMAL(5, 2),
+  current_port_id VARCHAR(10) REFERENCES ports(id),
+  progress_percent INT DEFAULT 0,
+  simulation_day INT DEFAULT 0,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Disruptions Table
+CREATE TABLE IF NOT EXISTS disruptions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  disruption_id_display VARCHAR(50) UNIQUE,
+  shipment_id UUID NOT NULL REFERENCES shipments(id),
+  type VARCHAR(50),
+  severity VARCHAR(20),
+  title VARCHAR(255),
+  description TEXT,
+  source VARCHAR(50) DEFAULT 'SYSTEM',
+  estimated_delay_hours INT,
+  cost_impact_usd DECIMAL(15, 2),
+  risk_reduction_percent INT,
+  detected_at TIMESTAMP NOT NULL,
+  resolved_at TIMESTAMP,
+  status VARCHAR(50) DEFAULT 'OPEN',
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Captain Reports Table
+CREATE TABLE IF NOT EXISTS captain_reports (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  report_id_display VARCHAR(50) UNIQUE,
+  shipment_id UUID NOT NULL REFERENCES shipments(id),
+  vessel_id UUID NOT NULL REFERENCES vessels(id),
+  captain_id UUID NOT NULL REFERENCES users(id),
+  report_type VARCHAR(50),
+  severity VARCHAR(20),
+  title VARCHAR(255),
+  description TEXT,
+  current_lat DECIMAL(10, 8),
+  current_lng DECIMAL(11, 8),
+  fuel_remaining_percent DECIMAL(5, 2),
+  current_speed_knots DECIMAL(5, 2),
+  estimated_repair_hours INT,
+  can_continue_under_power BOOLEAN,
+  requires_tow BOOLEAN,
+  speed_capability_knots DECIMAL(5, 2),
+  status VARCHAR(50) DEFAULT 'OPEN',
+  actions_taken TEXT[],
+  reported_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Recommendations Table
+CREATE TABLE IF NOT EXISTS recommendations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  recommendation_id_display VARCHAR(50) UNIQUE,
+  shipment_id UUID NOT NULL REFERENCES shipments(id),
+  disruption_id UUID REFERENCES disruptions(id),
+  type VARCHAR(50),
+  description TEXT,
+  extra_distance_nm DECIMAL(10, 2),
+  time_delta_days DECIMAL(5, 2),
+  cost_delta_usd DECIMAL(15, 2),
+  risk_reduction_percent INT,
+  alternative_route_waypoints TEXT,
+  status VARCHAR(50) DEFAULT 'PENDING_APPROVAL',
+  approved_by_user_id UUID REFERENCES users(id),
+  approved_at TIMESTAMP,
+  gemini_analysis TEXT,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Simulation Timeline Table
+CREATE TABLE IF NOT EXISTS simulation_timeline (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  shipment_id UUID NOT NULL REFERENCES shipments(id),
+  simulation_day INT,
+  lat DECIMAL(10, 8),
+  lng DECIMAL(11, 8),
+  speed_knots DECIMAL(5, 2),
+  current_port_id VARCHAR(10) REFERENCES ports(id),
+  status VARCHAR(50),
+  disruption_id UUID REFERENCES disruptions(id),
+  recommendation_id UUID REFERENCES recommendations(id),
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Indexes for performance
+CREATE INDEX IF NOT EXISTS idx_shipments_status ON shipments(status);
+CREATE INDEX IF NOT EXISTS idx_shipments_buyer_id ON shipments(buyer_id);
+CREATE INDEX IF NOT EXISTS idx_shipments_seller_id ON shipments(seller_id);
+CREATE INDEX IF NOT EXISTS idx_disruptions_shipment_id ON disruptions(shipment_id);
+CREATE INDEX IF NOT EXISTS idx_disruptions_status ON disruptions(status);
+CREATE INDEX IF NOT EXISTS idx_recommendations_shipment_id ON recommendations(shipment_id);
+CREATE INDEX IF NOT EXISTS idx_captain_reports_shipment_id ON captain_reports(shipment_id);
+CREATE INDEX IF NOT EXISTS idx_simulation_timeline_shipment_id ON simulation_timeline(shipment_id);
+</file>
+
+<file path="backend/package.json">
+{
+  "name": "voyager-backend",
+  "version": "1.0.0",
+  "description": "Voyagers Tribute Maritime Supply Chain Intelligence Platform - Backend",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "seed": "ts-node seeds/seed.ts"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.21.0",
+    "bcrypt": "^5.1.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "express-rate-limit": "^7.1.5",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.11.3",
+    "uuid": "^9.0.0",
+    "ws": "^8.16.0"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^5.0.2",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/jsonwebtoken": "^9.0.5",
+    "@types/node": "^20.11.5",
+    "@types/pg": "^8.10.9",
+    "@types/uuid": "^9.0.7",
+    "@types/ws": "^8.5.10",
+    "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.3.3"
+  }
+}
+</file>
+
+<file path="backend/src/config/database.ts">
+import { Pool } from 'pg';
+import { env } from './env';
+
+const pool = new Pool({
+  connectionString: env.DATABASE_URL,
+  max: 20,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 2000,
+});
+
+pool.on('error', (err) => {
+  console.error('Unexpected error on idle client', err);
+});
+
+export default pool;
+</file>
+
+<file path="backend/src/config/env.ts">
+// backend/src/config/env.ts
+// Environment configuration with validation
+
+const requiredEnvVars = [
+  'DATABASE_URL',
+  'JWT_SECRET',
+  'GEMINI_API_KEY',
+];
+
+const missingEnvVars = requiredEnvVars.filter(
+  (envVar) => !process.env[envVar]
+);
+
+if (missingEnvVars.length > 0 && process.env.NODE_ENV === 'production') {
+  throw new Error(
+    `Missing required environment variables: ${missingEnvVars.join(', ')}`
+  );
+}
+
+export const env = {
+  DATABASE_URL: process.env.DATABASE_URL || 'postgresql://postgres:password@localhost:5432/voyagers_db',
+  JWT_SECRET: process.env.JWT_SECRET || 'dev-secret-key-change-in-production-min-32-chars',
+  GEMINI_API_KEY: process.env.GEMINI_API_KEY || '',
+  FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:3000',
+  PORT: parseInt(process.env.PORT || '3001', 10),
+  NODE_ENV: (process.env.NODE_ENV || 'development') as 'development' | 'production' | 'test',
+  WS_URL: process.env.WS_URL || 'ws://localhost:3001',
+  RATE_LIMIT_WINDOW_MS: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000', 10),
+  RATE_LIMIT_MAX_REQUESTS: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '500', 10),
+  JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '24h',
+  LOG_LEVEL: process.env.LOG_LEVEL || 'info',
+};
+
+if (process.env.NODE_ENV !== 'production') {
+  console.log(`Running in ${env.NODE_ENV} mode`);
+  console.log(`Database: ${env.DATABASE_URL.replace(/:[^:/@]+@/, ':***@')}`);
+}
+</file>
+
+<file path="backend/src/controllers/authController.ts">
+import { Request, Response } from 'express';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+import pool from '../config/database';
+import { env } from '../config/env';
+
+export const register = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { email, password, role, first_name, last_name, company_name } = req.body;
+    if (!email || !password || !role) {
+      res.status(400).json({ error: 'Email, password and role are required' });
+      return;
+    }
+    const validRoles = ['CAPTAIN', 'BUYER', 'SELLER', 'ADMIN'];
+    if (!validRoles.includes(role)) {
+      res.status(400).json({ error: 'Invalid role' });
+      return;
+    }
+    const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
+    if (existing.rows.length > 0) {
+      res.status(409).json({ error: 'Email already registered' });
+      return;
+    }
+    const password_hash = await bcrypt.hash(password, 10);
+    const result = await pool.query(
+      `INSERT INTO users (email, password_hash, role, first_name, last_name, company_name)
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, email, role, first_name, last_name, company_name`,
+      [email, password_hash, role, first_name || null, last_name || null, company_name || null]
+    );
+    const user = result.rows[0];
+    const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, env.JWT_SECRET, {
+      expiresIn: env.JWT_EXPIRES_IN,
+    } as jwt.SignOptions);
+    res.status(201).json({ token, user });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Registration failed' });
+  }
+};
+
+export const login = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { email, password } = req.body;
+    
+    console.log('🔍 Login attempt - Email:', email);
+    
+    if (!email || !password) {
+      console.log('❌ Missing email or password');
+      res.status(400).json({ error: 'Email and password are required' });
+      return;
+    }
+    
+    const result = await pool.query(
+      'SELECT id, email, password_hash, role, first_name, last_name, company_name FROM users WHERE email = $1',
+      [email]
+    );
+    
+    console.log('📊 User query result - Found:', result.rows.length, 'user(s)');
+    
+    if (result.rows.length === 0) {
+      console.log('❌ User not found for email:', email);
+      res.status(401).json({ error: 'Invalid credentials' });
+      return;
+    }
+    
+    const user = result.rows[0];
+    console.log('✅ User found:', user.email);
+    
+    const valid = await bcrypt.compare(password, user.password_hash);
+    console.log('🔐 Password validation:', valid ? 'VALID' : 'INVALID');
+    
+    if (!valid) {
+      console.log('❌ Invalid password for user:', email);
+      res.status(401).json({ error: 'Invalid credentials' });
+      return;
+    }
+    
+    console.log('✨ Generating JWT token for user:', user.id);
+    const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, env.JWT_SECRET, {
+      expiresIn: env.JWT_EXPIRES_IN,
+    } as jwt.SignOptions);
+    
+    const { password_hash: _, ...userWithoutPassword } = user;
+    console.log('🎉 Login successful for:', email);
+    res.json({ token, user: userWithoutPassword });
+  } catch (err) {
+    console.error('💥 Login error:', err);
+    res.status(500).json({ error: 'Login failed' });
+  }
+};
+
+export const me = async (req: Request & { user?: { id: string } }, res: Response): Promise<void> => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+    const result = await pool.query(
+      'SELECT id, email, role, first_name, last_name, company_name, home_port_id, created_at FROM users WHERE id = $1',
+      [userId]
+    );
+    if (result.rows.length === 0) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch user' });
+  }
+};
+</file>
+
+<file path="backend/src/controllers/captainReportController.ts">
+import { Request, Response } from 'express';
+import pool from '../config/database';
+import { v4 as uuidv4 } from 'uuid';
+import { generateDisruptionAnalysis } from '../services/geminiService';
+import { AuthRequest } from '../middleware/auth';
+
+export const getCaptainReports = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { vessel_id, shipment_id } = req.query;
+    let query = `SELECT cr.*, s.shipment_id_display, v.name as vessel_name, v.imo as vessel_imo,
+      u.first_name as captain_first_name, u.last_name as captain_last_name
+      FROM captain_reports cr
+      LEFT JOIN shipments s ON cr.shipment_id = s.id
+      LEFT JOIN vessels v ON cr.vessel_id = v.id
+      LEFT JOIN users u ON cr.captain_id = u.id
+      WHERE 1=1`;
+    const params: string[] = [];
+    let idx = 1;
+    if (vessel_id) { query += ` AND cr.vessel_id = $${idx++}`; params.push(vessel_id as string); }
+    if (shipment_id) { query += ` AND (cr.shipment_id = $${idx++} OR s.shipment_id_display = $${idx - 1})`; params.push(shipment_id as string); }
+    query += ' ORDER BY cr.reported_at DESC';
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch captain reports' });
+  }
+};
+
+export const createCaptainReport = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const captainId = req.user?.id;
+    const {
+      shipment_id, vessel_id, report_type, severity, title, description,
+      current_lat, current_lng, fuel_remaining_percent, current_speed_knots,
+      estimated_repair_hours, can_continue_under_power, requires_tow,
+      speed_capability_knots, actions_taken
+    } = req.body;
+
+    if (!shipment_id || !vessel_id || !title) {
+      res.status(400).json({ error: 'shipment_id, vessel_id, and title are required' });
+      return;
+    }
+
+    const displayId = `RPT-${Date.now()}`;
+    const reportId = uuidv4();
+
+    const result = await pool.query(
+      `INSERT INTO captain_reports (id, report_id_display, shipment_id, vessel_id, captain_id, report_type, severity,
+        title, description, current_lat, current_lng, fuel_remaining_percent, current_speed_knots,
+        estimated_repair_hours, can_continue_under_power, requires_tow, speed_capability_knots, actions_taken)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18) RETURNING *`,
+      [reportId, displayId, shipment_id, vessel_id, captainId, report_type, severity,
+       title, description, current_lat, current_lng, fuel_remaining_percent, current_speed_knots,
+       estimated_repair_hours, can_continue_under_power, requires_tow, speed_capability_knots,
+       actions_taken || []]
+    );
+
+    const report = result.rows[0];
+
+    // Auto-create disruption from captain report
+    if (severity && severity !== 'LOW') {
+      const geminiAnalysis = await generateDisruptionAnalysis({
+        type: report_type || 'OPERATIONAL',
+        severity,
+        title,
+        description,
+        vessel_info: { vessel_id, current_lat, current_lng },
+      });
+
+      const disruptionId = uuidv4();
+      const disruptionDisplayId = `DISRUPT-${Date.now()}`;
+      await pool.query(
+        `INSERT INTO disruptions (id, disruption_id_display, shipment_id, type, severity, title, description, source,
+          estimated_delay_hours, cost_impact_usd, detected_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,'CAPTAIN_REPORT',$8,$9,NOW())`,
+        [disruptionId, disruptionDisplayId, shipment_id, report_type || 'OPERATIONAL', severity,
+         title, geminiAnalysis.summary || description,
+         estimated_repair_hours || 0, geminiAnalysis.estimatedCost || 0]
+      );
+    }
+
+    res.status(201).json(report);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to create captain report' });
+  }
+};
+
+export const getCaptainReportById = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query(
+      `SELECT cr.*, s.shipment_id_display, v.name as vessel_name,
+        u.first_name as captain_first_name, u.last_name as captain_last_name
+       FROM captain_reports cr
+       LEFT JOIN shipments s ON cr.shipment_id = s.id
+       LEFT JOIN vessels v ON cr.vessel_id = v.id
+       LEFT JOIN users u ON cr.captain_id = u.id
+       WHERE cr.id = $1 OR cr.report_id_display = $1`,
+      [id]
+    );
+    if (result.rows.length === 0) {
+      res.status(404).json({ error: 'Report not found' });
+      return;
+    }
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch captain report' });
+  }
+};
+</file>
+
+<file path="backend/src/controllers/disruptionController.ts">
+import { Request, Response } from 'express';
+import pool from '../config/database';
+import { v4 as uuidv4 } from 'uuid';
+
+export const getDisruptions = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { shipment_id } = req.query;
+    let query = 'SELECT d.*, s.shipment_id_display FROM disruptions d LEFT JOIN shipments s ON d.shipment_id = s.id WHERE 1=1';
+    const params: string[] = [];
+    if (shipment_id) {
+      query += ' AND (d.shipment_id = $1 OR s.shipment_id_display = $1)';
+      params.push(shipment_id as string);
+    }
+    query += ' ORDER BY d.detected_at DESC';
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch disruptions' });
+  }
+};
+
+export const getDisruptionById = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query(
+      'SELECT d.*, s.shipment_id_display FROM disruptions d LEFT JOIN shipments s ON d.shipment_id = s.id WHERE d.id = $1 OR d.disruption_id_display = $1',
+      [id]
+    );
+    if (result.rows.length === 0) {
+      res.status(404).json({ error: 'Disruption not found' });
+      return;
+    }
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch disruption' });
+  }
+};
+
+export const createDisruption = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const {
+      shipment_id, type, severity, title, description, source,
+      estimated_delay_hours, cost_impact_usd, risk_reduction_percent, detected_at
+    } = req.body;
+    if (!shipment_id || !title) {
+      res.status(400).json({ error: 'shipment_id and title are required' });
+      return;
+    }
+    const displayId = `DISRUPT-${Date.now()}`;
+    const result = await pool.query(
+      `INSERT INTO disruptions (id, disruption_id_display, shipment_id, type, severity, title, description, source, estimated_delay_hours, cost_impact_usd, risk_reduction_percent, detected_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
+      [uuidv4(), displayId, shipment_id, type, severity, title, description, source || 'SYSTEM',
+       estimated_delay_hours, cost_impact_usd, risk_reduction_percent, detected_at || new Date()]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to create disruption' });
+  }
+};
+
+export const updateDisruptionStatus = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    const validStatuses = ['OPEN', 'INVESTIGATING', 'RESOLVED', 'DISMISSED'];
+    if (!validStatuses.includes(status)) {
+      res.status(400).json({ error: 'Invalid status' });
+      return;
+    }
+    const resolvedAt = status === 'RESOLVED' ? new Date() : null;
+    const result = await pool.query(
+      'UPDATE disruptions SET status = $1, resolved_at = $2 WHERE id = $3 OR disruption_id_display = $3 RETURNING *',
+      [status, resolvedAt, id]
+    );
+    if (result.rows.length === 0) {
+      res.status(404).json({ error: 'Disruption not found' });
+      return;
+    }
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to update disruption status' });
+  }
+};
+</file>
+
+<file path="backend/src/controllers/portController.ts">
+import { Request, Response } from 'express';
+import pool from '../config/database';
+
+export const getPorts = async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const result = await pool.query('SELECT * FROM ports ORDER BY name');
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch ports' });
+  }
+};
+</file>
+
+<file path="backend/src/controllers/recommendationController.ts">
+import { Request, Response } from 'express';
+import pool from '../config/database';
+import { AuthRequest } from '../middleware/auth';
+
+export const getRecommendations = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { shipment_id } = req.query;
+    let query = `SELECT r.*, s.shipment_id_display FROM recommendations r
+      LEFT JOIN shipments s ON r.shipment_id = s.id WHERE 1=1`;
+    const params: string[] = [];
+    if (shipment_id) {
+      query += ' AND (r.shipment_id = $1 OR s.shipment_id_display = $1)';
+      params.push(shipment_id as string);
+    }
+    query += ' ORDER BY r.created_at DESC';
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch recommendations' });
+  }
+};
+
+export const getRecommendationById = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query(
+      'SELECT r.*, s.shipment_id_display FROM recommendations r LEFT JOIN shipments s ON r.shipment_id = s.id WHERE r.id = $1 OR r.recommendation_id_display = $1',
+      [id]
+    );
+    if (result.rows.length === 0) {
+      res.status(404).json({ error: 'Recommendation not found' });
+      return;
+    }
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch recommendation' });
+  }
+};
+
+export const approveRecommendation = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const userId = req.user?.id;
+    const result = await pool.query(
+      `UPDATE recommendations SET status = 'APPROVED', approved_by_user_id = $1, approved_at = NOW()
+       WHERE id = $2 OR recommendation_id_display = $2 RETURNING *`,
+      [userId, id]
+    );
+    if (result.rows.length === 0) {
+      res.status(404).json({ error: 'Recommendation not found' });
+      return;
+    }
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to approve recommendation' });
+  }
+};
+
+export const rejectRecommendation = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const userId = req.user?.id;
+    const result = await pool.query(
+      `UPDATE recommendations SET status = 'REJECTED', approved_by_user_id = $1, approved_at = NOW()
+       WHERE id = $2 OR recommendation_id_display = $2 RETURNING *`,
+      [userId, id]
+    );
+    if (result.rows.length === 0) {
+      res.status(404).json({ error: 'Recommendation not found' });
+      return;
+    }
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to reject recommendation' });
+  }
+};
+</file>
+
+<file path="backend/src/controllers/shipmentController.ts">
+import { Request, Response } from 'express';
+import pool from '../config/database';
+
+export const getShipments = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { status, buyer_id, seller_id } = req.query;
+    let query = `
+      SELECT s.*, 
+        op.name as origin_port_name, dp.name as destination_port_name,
+        v.name as vessel_name, v.imo as vessel_imo, v.vessel_type,
+        bu.first_name as buyer_first_name, bu.last_name as buyer_last_name, bu.company_name as buyer_company,
+        se.first_name as seller_first_name, se.last_name as seller_last_name, se.company_name as seller_company
+      FROM shipments s
+      LEFT JOIN ports op ON s.origin_port_id = op.id
+      LEFT JOIN ports dp ON s.destination_port_id = dp.id
+      LEFT JOIN vessels v ON s.vessel_id = v.id
+      LEFT JOIN users bu ON s.buyer_id = bu.id
+      LEFT JOIN users se ON s.seller_id = se.id
+      WHERE 1=1
+    `;
+    const params: (string | undefined)[] = [];
+    let idx = 1;
+    if (status) { query += ` AND s.status = $${idx++}`; params.push(status as string); }
+    if (buyer_id) { query += ` AND s.buyer_id = $${idx++}`; params.push(buyer_id as string); }
+    if (seller_id) { query += ` AND s.seller_id = $${idx++}`; params.push(seller_id as string); }
+    query += ' ORDER BY s.created_at DESC';
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch shipments' });
+  }
+};
+
+export const getShipmentById = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query(
+      `SELECT s.*,
+        op.name as origin_port_name, op.lat as origin_lat, op.lng as origin_lng,
+        dp.name as destination_port_name, dp.lat as destination_lat, dp.lng as destination_lng,
+        v.name as vessel_name, v.imo as vessel_imo, v.vessel_type, v.capacity_teu, v.max_speed_knots,
+        bu.first_name as buyer_first_name, bu.last_name as buyer_last_name, bu.company_name as buyer_company,
+        se.first_name as seller_first_name, se.last_name as seller_last_name, se.company_name as seller_company
+       FROM shipments s
+       LEFT JOIN ports op ON s.origin_port_id = op.id
+       LEFT JOIN ports dp ON s.destination_port_id = dp.id
+       LEFT JOIN vessels v ON s.vessel_id = v.id
+       LEFT JOIN users bu ON s.buyer_id = bu.id
+       LEFT JOIN users se ON s.seller_id = se.id
+       WHERE s.id = $1 OR s.shipment_id_display = $1`,
+      [id]
+    );
+    if (result.rows.length === 0) {
+      res.status(404).json({ error: 'Shipment not found' });
+      return;
+    }
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch shipment' });
+  }
+};
+
+export const updateShipmentStatus = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    const validStatuses = ['PLANNED', 'IN_TRANSIT', 'DELAYED', 'AT_PORT', 'DELIVERED', 'CANCELLED'];
+    if (!validStatuses.includes(status)) {
+      res.status(400).json({ error: 'Invalid status' });
+      return;
+    }
+    const result = await pool.query(
+      'UPDATE shipments SET status = $1, updated_at = NOW() WHERE id = $2 OR shipment_id_display = $2 RETURNING *',
+      [status, id]
+    );
+    if (result.rows.length === 0) {
+      res.status(404).json({ error: 'Shipment not found' });
+      return;
+    }
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to update shipment status' });
+  }
+};
+</file>
+
+<file path="backend/src/controllers/simulationController.ts">
+import { Request, Response } from 'express';
+import pool from '../config/database';
+import { generateTimelinePoints, interpolatePosition } from '../services/simulationService';
+
+export const getTimeline = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { shipmentId } = req.params;
+    const result = await pool.query(
+      `SELECT st.*, p.name as port_name FROM simulation_timeline st
+       LEFT JOIN ports p ON st.current_port_id = p.id
+       WHERE st.shipment_id = $1 OR EXISTS (
+         SELECT 1 FROM shipments s WHERE s.id = st.shipment_id AND s.shipment_id_display = $1
+       ) ORDER BY st.simulation_day ASC`,
+      [shipmentId]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch timeline' });
+  }
+};
+
+export const advanceSimulation = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { shipmentId } = req.params;
+    const { days = 1 } = req.body;
+
+    const shipResult = await pool.query(
+      `SELECT s.*, op.lat as origin_lat, op.lng as origin_lng,
+        dp.lat as dest_lat, dp.lng as dest_lng,
+        dp.id as dest_port_id
+       FROM shipments s
+       LEFT JOIN ports op ON s.origin_port_id = op.id
+       LEFT JOIN ports dp ON s.destination_port_id = dp.id
+       WHERE s.id = $1 OR s.shipment_id_display = $1`,
+      [shipmentId]
+    );
+
+    if (shipResult.rows.length === 0) {
+      res.status(404).json({ error: 'Shipment not found' });
+      return;
+    }
+
+    const shipment = shipResult.rows[0];
+    const newDay = Math.min((shipment.simulation_day || 0) + days, 35);
+
+    const departure = new Date(shipment.departure_date);
+    const arrival = new Date(shipment.scheduled_arrival);
+    const totalDays = Math.round((arrival.getTime() - departure.getTime()) / (1000 * 60 * 60 * 24));
+    const progress = Math.min(Math.round((newDay / totalDays) * 100), 100);
+
+    const pos = interpolatePosition(
+      { lat: parseFloat(shipment.origin_lat), lng: parseFloat(shipment.origin_lng) },
+      { lat: parseFloat(shipment.dest_lat), lng: parseFloat(shipment.dest_lng) },
+      newDay / totalDays
+    );
+
+    const newStatus = progress >= 100 ? 'DELIVERED' : shipment.status === 'DELIVERED' ? 'DELIVERED' : 'IN_TRANSIT';
+    const currentPortId = progress >= 100 ? shipment.dest_port_id : null;
+
+    await pool.query(
+      `UPDATE shipments SET simulation_day = $1, progress_percent = $2, current_lat = $3, current_lng = $4,
+        status = $5, current_port_id = $6, updated_at = NOW()
+       WHERE id = $7 OR shipment_id_display = $7`,
+      [newDay, progress, pos.lat, pos.lng, newStatus, currentPortId, shipmentId]
+    );
+
+    // Insert timeline point
+    await pool.query(
+      `INSERT INTO simulation_timeline (id, shipment_id, simulation_day, lat, lng, speed_knots, status, current_port_id)
+       VALUES (gen_random_uuid(), (SELECT id FROM shipments WHERE id = $1 OR shipment_id_display = $1), $2, $3, $4, $5, $6, $7)
+       ON CONFLICT DO NOTHING`,
+      [shipmentId, newDay, pos.lat, pos.lng, shipment.current_speed_knots || 18, newStatus, currentPortId]
+    );
+
+    const updated = await pool.query(
+      'SELECT * FROM shipments WHERE id = $1 OR shipment_id_display = $1',
+      [shipmentId]
+    );
+    res.json(updated.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to advance simulation' });
+  }
+};
+
+export const resetSimulation = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { shipmentId } = req.params;
+    const shipResult = await pool.query(
+      `SELECT s.*, op.lat as origin_lat, op.lng as origin_lng
+       FROM shipments s LEFT JOIN ports op ON s.origin_port_id = op.id
+       WHERE s.id = $1 OR s.shipment_id_display = $1`,
+      [shipmentId]
+    );
+    if (shipResult.rows.length === 0) {
+      res.status(404).json({ error: 'Shipment not found' });
+      return;
+    }
+    const shipment = shipResult.rows[0];
+    await pool.query(
+      `UPDATE shipments SET simulation_day = 0, progress_percent = 0,
+        current_lat = $1, current_lng = $2, status = 'PLANNED', current_port_id = origin_port_id, updated_at = NOW()
+       WHERE id = $3 OR shipment_id_display = $3`,
+      [shipment.origin_lat, shipment.origin_lng, shipmentId]
+    );
+    await pool.query(
+      `DELETE FROM simulation_timeline WHERE shipment_id = (SELECT id FROM shipments WHERE id = $1 OR shipment_id_display = $1)`,
+      [shipmentId]
+    );
+    res.json({ message: 'Simulation reset successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to reset simulation' });
+  }
+};
+
+export const getCurrentState = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { shipmentId } = req.params;
+    const shipResult = await pool.query(
+      `SELECT s.*,
+        op.name as origin_port_name, dp.name as destination_port_name,
+        v.name as vessel_name
+       FROM shipments s
+       LEFT JOIN ports op ON s.origin_port_id = op.id
+       LEFT JOIN ports dp ON s.destination_port_id = dp.id
+       LEFT JOIN vessels v ON s.vessel_id = v.id
+       WHERE s.id = $1 OR s.shipment_id_display = $1`,
+      [shipmentId]
+    );
+    if (shipResult.rows.length === 0) {
+      res.status(404).json({ error: 'Shipment not found' });
+      return;
+    }
+    const disruptions = await pool.query(
+      `SELECT * FROM disruptions WHERE shipment_id = (SELECT id FROM shipments WHERE id = $1 OR shipment_id_display = $1) ORDER BY detected_at DESC`,
+      [shipmentId]
+    );
+    const recommendations = await pool.query(
+      `SELECT * FROM recommendations WHERE shipment_id = (SELECT id FROM shipments WHERE id = $1 OR shipment_id_display = $1) ORDER BY created_at DESC`,
+      [shipmentId]
+    );
+    res.json({
+      shipment: shipResult.rows[0],
+      disruptions: disruptions.rows,
+      recommendations: recommendations.rows,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch current state' });
+  }
+};
+
+export { generateTimelinePoints };
+</file>
+
+<file path="backend/src/index.ts">
+// backend/src/index.ts
+// Main application entry point
+
+import 'dotenv/config';
+import express, { Express } from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+import http from 'http';
+import { env } from './config/env';
+import { errorHandler } from './middleware/errorHandler';
+import { initWebSocket } from './websocket/wsHandler';
+
+// Route imports
+import authRoutes from './routes/auth';
+import shipmentRoutes from './routes/shipments';
+import portRoutes from './routes/ports';
+import disruptionRoutes from './routes/disruptions';
+import recommendationRoutes from './routes/recommendations';
+import captainReportRoutes from './routes/captainReports';
+import simulationRoutes from './routes/simulation';
+
+const app: Express = express();
+
+// ============================================
+// SECURITY MIDDLEWARE
+// ============================================
+app.use(helmet());
+app.use(
+  cors({
+    origin: env.FRONTEND_URL,
+    credentials: true,
+    optionsSuccessStatus: 200,
+  })
+);
+
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: env.RATE_LIMIT_WINDOW_MS,
+  max: env.RATE_LIMIT_MAX_REQUESTS,
+  message: 'Too many requests from this IP, please try again later.',
+});
+app.use('/api/', limiter);
+
+// ============================================
+// BODY PARSING
+// ============================================
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// ============================================
+// HEALTH CHECK ENDPOINT
+// ============================================
+app.get('/health', (_req, res) => {
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    environment: env.NODE_ENV,
+  });
+});
+
+// ============================================
+// API ROUTES
+// ============================================
+const apiRouter = express.Router();
+
+// Auth
+apiRouter.use('/auth', authRoutes);
+
+// Resources
+apiRouter.use('/shipments', shipmentRoutes);
+apiRouter.use('/ports', portRoutes);
+apiRouter.use('/disruptions', disruptionRoutes);
+apiRouter.use('/recommendations', recommendationRoutes);
+apiRouter.use('/captain-reports', captainReportRoutes);
+
+// Simulation & real-time
+apiRouter.use('/simulation', simulationRoutes);
+
+// Mount all API routes under /api
+app.use('/api', apiRouter);
+
+// ============================================
+// 404 HANDLER
+// ============================================
+app.use((_req, res) => {
+  res.status(404).json({
+    error: 'Not Found',
+    message: 'The requested endpoint does not exist',
+    timestamp: new Date().toISOString(),
+  });
+});
+
+// ============================================
+// ERROR HANDLER (Must be last)
+// ============================================
+app.use(errorHandler);
+
+// ============================================
+// WEBSOCKET SERVER
+// ============================================
+const server = http.createServer(app);
+const wss = initWebSocket(server);
+
+// Log WebSocket connections
+wss.on('connection', (ws) => {
+  console.log(`[WebSocket] New connection. Total clients: ${wss.clients.size}`);
+  
+  ws.on('close', () => {
+    console.log(`[WebSocket] Client disconnected. Total clients: ${wss.clients.size}`);
+  });
+});
+
+// ============================================
+// SERVER STARTUP
+// ============================================
+const PORT = env.PORT || 3001;
+
+server.listen(PORT, () => {
+  console.log(`\n${'='.repeat(60)}`);
+  console.log('🚀 VOYAGERS TRIBUTE - Maritime Intelligence Platform');
+  console.log(`${'='.repeat(60)}`);
+  console.log(`
+📡 Server Configuration:
+   - Environment: ${env.NODE_ENV}
+   - HTTP Port: ${PORT}
+   - WebSocket: ws://localhost:${PORT}
+   - Frontend URL: ${env.FRONTEND_URL}
+   - Database: ${env.DATABASE_URL.split('@')[1] || 'configured'}
+  `);
+  console.log(`✅ Server listening on http://localhost:${PORT}`);
+  console.log(`🔗 WebSocket available at ws://localhost:${PORT}`);
+  console.log(`📊 Health check: http://localhost:${PORT}/health`);
+  console.log(`${'='.repeat(60)}\n`);
+});
+
+// ============================================
+// GRACEFUL SHUTDOWN
+// ============================================
+process.on('SIGTERM', () => {
+  console.log('\n⚠️  SIGTERM signal received: closing HTTP server');
+  
+  server.close(() => {
+    console.log('✅ HTTP server closed');
+    process.exit(0);
+  });
+
+  // Force shutdown after 10 seconds
+  setTimeout(() => {
+    console.error('❌ Forcing shutdown after timeout');
+    process.exit(1);
+  }, 10000);
+});
+
+process.on('SIGINT', () => {
+  console.log('\n⚠️  SIGINT signal received: closing HTTP server');
+  
+  server.close(() => {
+    console.log('✅ HTTP server closed');
+    process.exit(0);
+  });
+
+  // Force shutdown after 10 seconds
+  setTimeout(() => {
+    console.error('❌ Forcing shutdown after timeout');
+    process.exit(1);
+  }, 10000);
+});
+
+// ============================================
+// UNHANDLED ERROR HANDLERS
+// ============================================
+process.on('uncaughtException', (error) => {
+  console.error('❌ Uncaught Exception:', error);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(1);
+});
+
+export default app;
+</file>
+
+<file path="backend/src/middleware/auth.ts">
+import { Request, Response, NextFunction } from 'express';
+import jwt from 'jsonwebtoken';
+import { env } from '../config/env';
+
+export interface AuthRequest extends Request {
+  user?: {
+    id: string;
+    email: string;
+    role: string;
+  };
+}
+
+export const authenticate = (req: AuthRequest, res: Response, next: NextFunction): void => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    res.status(401).json({ error: 'No token provided' });
+    return;
+  }
+  const token = authHeader.split(' ')[1];
+  try {
+    const decoded = jwt.verify(token, env.JWT_SECRET) as { id: string; email: string; role: string };
+    req.user = decoded;
+    next();
+  } catch {
+    res.status(401).json({ error: 'Invalid token' });
+  }
+};
+
+export const requireRole = (...roles: string[]) => {
+  return (req: AuthRequest, res: Response, next: NextFunction): void => {
+    if (!req.user || !roles.includes(req.user.role)) {
+      res.status(403).json({ error: 'Insufficient permissions' });
+      return;
+    }
+    next();
+  };
+};
+</file>
+
+<file path="backend/src/middleware/errorHandler.ts">
+import { Request, Response, NextFunction } from 'express';
+
+export const errorHandler = (
+  err: Error,
+  _req: Request,
+  res: Response,
+  _next: NextFunction
+): void => {
+  console.error(err.stack);
+  res.status(500).json({
+    error: 'Internal server error',
+    message: process.env.NODE_ENV === 'development' ? err.message : undefined,
+  });
+};
+</file>
+
+<file path="backend/src/routes/auth.ts">
+import { Router } from 'express';
+import { register, login, me } from '../controllers/authController';
+import { authenticate } from '../middleware/auth';
+
+const router = Router();
+
+router.post('/register', register);
+router.post('/login', login);
+router.get('/me', authenticate, me);
+
+export default router;
+</file>
+
+<file path="backend/src/routes/captainReports.ts">
+import { Router } from 'express';
+import {
+  getCaptainReports, createCaptainReport, getCaptainReportById
+} from '../controllers/captainReportController';
+import { authenticate, requireRole } from '../middleware/auth';
+
+const router = Router();
+
+router.get('/', authenticate, getCaptainReports);
+router.post('/', authenticate, requireRole('CAPTAIN', 'ADMIN'), createCaptainReport);
+router.get('/:id', authenticate, getCaptainReportById);
+
+export default router;
+</file>
+
+<file path="backend/src/routes/disruptions.ts">
+import { Router } from 'express';
+import {
+  getDisruptions, getDisruptionById, createDisruption, updateDisruptionStatus
+} from '../controllers/disruptionController';
+import { authenticate } from '../middleware/auth';
+
+const router = Router();
+
+router.get('/', authenticate, getDisruptions);
+router.get('/:id', authenticate, getDisruptionById);
+router.post('/', authenticate, createDisruption);
+router.put('/:id/status', authenticate, updateDisruptionStatus);
+
+export default router;
+</file>
+
+<file path="backend/src/routes/ports.ts">
+import { Router } from 'express';
+import { getPorts } from '../controllers/portController';
+import { authenticate } from '../middleware/auth';
+
+const router = Router();
+
+router.get('/', authenticate, getPorts);
+
+export default router;
+</file>
+
+<file path="backend/src/routes/recommendations.ts">
+import { Router } from 'express';
+import {
+  getRecommendations, getRecommendationById, approveRecommendation, rejectRecommendation
+} from '../controllers/recommendationController';
+import { authenticate } from '../middleware/auth';
+
+const router = Router();
+
+router.get('/', authenticate, getRecommendations);
+router.get('/:id', authenticate, getRecommendationById);
+router.put('/:id/approve', authenticate, approveRecommendation);
+router.put('/:id/reject', authenticate, rejectRecommendation);
+
+export default router;
+</file>
+
+<file path="backend/src/routes/shipments.ts">
+import { Router } from 'express';
+import { getShipments, getShipmentById, updateShipmentStatus } from '../controllers/shipmentController';
+import { authenticate } from '../middleware/auth';
+
+const router = Router();
+
+router.get('/', authenticate, getShipments);
+router.get('/:id', authenticate, getShipmentById);
+router.put('/:id/status', authenticate, updateShipmentStatus);
+
+export default router;
+</file>
+
+<file path="backend/src/routes/simulation.ts">
+import { Router } from 'express';
+import {
+  getTimeline, advanceSimulation, resetSimulation, getCurrentState
+} from '../controllers/simulationController';
+import { authenticate } from '../middleware/auth';
+
+const router = Router();
+
+router.get('/:shipmentId/timeline', authenticate, getTimeline);
+router.post('/:shipmentId/advance', authenticate, advanceSimulation);
+router.post('/:shipmentId/reset', authenticate, resetSimulation);
+router.get('/:shipmentId/current-state', authenticate, getCurrentState);
+
+export default router;
+</file>
+
+<file path="backend/src/services/geminiService.ts">
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import { env } from '../config/env';
+
+interface DisruptionInput {
+  type: string;
+  severity: string;
+  title: string;
+  description?: string;
+  vessel_info?: {
+    vessel_id?: string;
+    current_lat?: number;
+    current_lng?: number;
+  };
+}
+
+interface GeminiAnalysisResult {
+  summary: string;
+  recommendation: string;
+  estimatedCost: number;
+  riskLevel: string;
+  actions: string[];
+}
+
+const MOCK_RESPONSE: GeminiAnalysisResult = {
+  summary: 'Disruption detected. Immediate assessment required.',
+  recommendation: 'Monitor situation closely and prepare contingency plans.',
+  estimatedCost: 50000,
+  riskLevel: 'MEDIUM',
+  actions: ['Notify relevant stakeholders', 'Assess alternative routes', 'Update ETA'],
+};
+
+export async function generateDisruptionAnalysis(input: DisruptionInput): Promise<GeminiAnalysisResult> {
+  if (!env.GEMINI_API_KEY) {
+    console.warn('GEMINI_API_KEY not set, returning mock response');
+    return MOCK_RESPONSE;
+  }
+
+  try {
+    const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+
+    const prompt = `You are a maritime supply chain AI assistant. Analyze this disruption and provide a JSON response.
+
+Disruption Details:
+- Type: ${input.type}
+- Severity: ${input.severity}
+- Title: ${input.title}
+- Description: ${input.description || 'No additional description'}
+- Location: ${input.vessel_info?.current_lat || 'Unknown'}, ${input.vessel_info?.current_lng || 'Unknown'}
+
+Respond with ONLY valid JSON in this exact format:
+{
+  "summary": "Brief summary of the disruption and its impact",
+  "recommendation": "Specific action recommendation",
+  "estimatedCost": <number in USD>,
+  "riskLevel": "LOW|MEDIUM|HIGH|CRITICAL",
+  "actions": ["action1", "action2", "action3"]
+}`;
+
+    const result = await model.generateContent(prompt);
+    const text = result.response.text();
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) return MOCK_RESPONSE;
+    return JSON.parse(jsonMatch[0]) as GeminiAnalysisResult;
+  } catch (err) {
+    console.error('Gemini API error:', err);
+    return MOCK_RESPONSE;
+  }
+}
+
+export async function generateRouteRecommendation(shipmentDetails: {
+  origin: string;
+  destination: string;
+  disruption: string;
+  currentPosition?: { lat: number; lng: number };
+}): Promise<string> {
+  if (!env.GEMINI_API_KEY) {
+    return `Based on the disruption "${shipmentDetails.disruption}", consider alternative routing options to minimize delay and cost impact. Evaluate rerouting via alternative maritime corridors.`;
+  }
+
+  try {
+    const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+
+    const prompt = `As a maritime routing expert, provide a brief recommendation for this scenario:
+Origin: ${shipmentDetails.origin}
+Destination: ${shipmentDetails.destination}
+Active Disruption: ${shipmentDetails.disruption}
+Current Position: ${shipmentDetails.currentPosition?.lat || 'Unknown'}, ${shipmentDetails.currentPosition?.lng || 'Unknown'}
+
+Provide a 2-3 sentence routing recommendation.`;
+
+    const result = await model.generateContent(prompt);
+    return result.response.text();
+  } catch (err) {
+    console.error('Gemini API error:', err);
+    return `Recommend evaluating alternative routing options due to: ${shipmentDetails.disruption}`;
+  }
+}
+</file>
+
+<file path="backend/src/services/simulationService.ts">
+interface Position {
+  lat: number;
+  lng: number;
+}
+
+// Great circle interpolation between two positions
+export function interpolatePosition(origin: Position, destination: Position, fraction: number): Position {
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const toDeg = (rad: number) => (rad * 180) / Math.PI;
+
+  const lat1 = toRad(origin.lat);
+  const lng1 = toRad(origin.lng);
+  const lat2 = toRad(destination.lat);
+  const lng2 = toRad(destination.lng);
+
+  const d = 2 * Math.asin(
+    Math.sqrt(
+      Math.pow(Math.sin((lat2 - lat1) / 2), 2) +
+      Math.cos(lat1) * Math.cos(lat2) * Math.pow(Math.sin((lng2 - lng1) / 2), 2)
+    )
+  );
+
+  if (d === 0) return origin;
+
+  const f = fraction;
+  const a = Math.sin((1 - f) * d) / Math.sin(d);
+  const b = Math.sin(f * d) / Math.sin(d);
+
+  const x = a * Math.cos(lat1) * Math.cos(lng1) + b * Math.cos(lat2) * Math.cos(lng2);
+  const y = a * Math.cos(lat1) * Math.sin(lng1) + b * Math.cos(lat2) * Math.sin(lng2);
+  const z = a * Math.sin(lat1) + b * Math.sin(lat2);
+
+  const lat = toDeg(Math.atan2(z, Math.sqrt(x * x + y * y)));
+  const lng = toDeg(Math.atan2(y, x));
+
+  return { lat, lng };
+}
+
+export interface TimelinePoint {
+  day: number;
+  lat: number;
+  lng: number;
+  speed_knots: number;
+  status: string;
+  port_id?: string;
+}
+
+export function generateTimelinePoints(
+  origin: Position,
+  destination: Position,
+  totalDays: number,
+  speedKnots: number = 18
+): TimelinePoint[] {
+  const points: TimelinePoint[] = [];
+
+  for (let day = 0; day <= totalDays; day++) {
+    const fraction = day / totalDays;
+    const pos = interpolatePosition(origin, destination, fraction);
+    const status = day === 0 ? 'PLANNED' : day === totalDays ? 'DELIVERED' : 'IN_TRANSIT';
+
+    points.push({
+      day,
+      lat: Math.round(pos.lat * 1e6) / 1e6,
+      lng: Math.round(pos.lng * 1e6) / 1e6,
+      speed_knots: speedKnots,
+      status,
+    });
+  }
+
+  return points;
+}
+
+export function calculateGreatCircleDistance(origin: Position, destination: Position): number {
+  const R = 3440.065; // Earth radius in nautical miles
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+
+  const dLat = toRad(destination.lat - origin.lat);
+  const dLng = toRad(destination.lng - origin.lng);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(origin.lat)) * Math.cos(toRad(destination.lat)) *
+    Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+</file>
+
+<file path="backend/src/websocket/wsHandler.ts">
+import { WebSocketServer, WebSocket } from 'ws';
+import { IncomingMessage } from 'http';
+import jwt from 'jsonwebtoken';
+import { env } from '../config/env';
+
+interface AuthenticatedWebSocket extends WebSocket {
+  userId?: string;
+  userRole?: string;
+  isAlive?: boolean;
+}
+
+interface WSMessage {
+  type: string;
+  payload?: unknown;
+}
+
+let wss: WebSocketServer | null = null;
+
+export function initWebSocket(server: import('http').Server): WebSocketServer {
+  wss = new WebSocketServer({ server });
+
+  wss.on('connection', (ws: AuthenticatedWebSocket, req: IncomingMessage) => {
+    ws.isAlive = true;
+
+    // Authenticate connection
+    const url = new URL(req.url || '/', `http://localhost`);
+    const token = url.searchParams.get('token');
+
+    if (token) {
+      try {
+        const decoded = jwt.verify(token, env.JWT_SECRET) as { id: string; role: string };
+        ws.userId = decoded.id;
+        ws.userRole = decoded.role;
+      } catch {
+        ws.close(4001, 'Invalid token');
+        return;
+      }
+    }
+
+    ws.send(JSON.stringify({ type: 'CONNECTED', payload: { message: 'Connected to Voyager WSS' } }));
+
+    ws.on('pong', () => {
+      ws.isAlive = true;
+    });
+
+    ws.on('message', (data) => {
+      try {
+        const message: WSMessage = JSON.parse(data.toString());
+        handleMessage(ws, message);
+      } catch {
+        ws.send(JSON.stringify({ type: 'ERROR', payload: { message: 'Invalid message format' } }));
+      }
+    });
+
+    ws.on('close', () => {
+      console.log(`WebSocket client disconnected: ${ws.userId || 'anonymous'}`);
+    });
+
+    ws.on('error', (err) => {
+      console.error('WebSocket error:', err);
+    });
+  });
+
+  // Heartbeat
+  const interval = setInterval(() => {
+    if (!wss) return;
+    wss.clients.forEach((ws) => {
+      const authWs = ws as AuthenticatedWebSocket;
+      if (!authWs.isAlive) {
+        authWs.terminate();
+        return;
+      }
+      authWs.isAlive = false;
+      authWs.ping();
+    });
+  }, 30000);
+
+  wss.on('close', () => clearInterval(interval));
+
+  return wss;
+}
+
+function handleMessage(ws: AuthenticatedWebSocket, message: WSMessage): void {
+  switch (message.type) {
+    case 'PING':
+      ws.send(JSON.stringify({ type: 'PONG' }));
+      break;
+    case 'SUBSCRIBE_SHIPMENT':
+      ws.send(JSON.stringify({ type: 'SUBSCRIBED', payload: message.payload }));
+      break;
+    default:
+      ws.send(JSON.stringify({ type: 'UNKNOWN_MESSAGE_TYPE' }));
+  }
+}
+
+export function broadcast(type: string, payload: unknown): void {
+  if (!wss) return;
+  const message = JSON.stringify({ type, payload });
+  wss.clients.forEach((ws) => {
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send(message);
+    }
+  });
+}
+
+export function broadcastToUser(userId: string, type: string, payload: unknown): void {
+  if (!wss) return;
+  const message = JSON.stringify({ type, payload });
+  wss.clients.forEach((ws) => {
+    const authWs = ws as AuthenticatedWebSocket;
+    if (authWs.readyState === WebSocket.OPEN && authWs.userId === userId) {
+      authWs.send(message);
+    }
+  });
+}
+</file>
+
+<file path="backend/tsconfig.json">
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "commonjs",
+    "lib": ["ES2020"],
+    "outDir": "./dist",
+    "rootDir": "./",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true
+  },
+  "include": ["src/**/*", "seeds/**/*"],
+  "exclude": ["node_modules", "dist"]
+}
+</file>
+
+<file path="docker-compose.yml">
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: voyager_postgres
+    environment:
+      POSTGRES_DB: voyager_db
+      POSTGRES_USER: voyager_user
+      POSTGRES_PASSWORD: voyager_password
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/migrations/001_initial_schema.sql:/docker-entrypoint-initdb.d/001_initial_schema.sql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U voyager_user -d voyager_db']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+</file>
+
+<file path="frontend/.env.example">
+NEXT_PUBLIC_API_URL=http://localhost:3001
+NEXT_PUBLIC_WS_URL=ws://localhost:3001
+NEXT_PUBLIC_MAPBOX_TOKEN=your-mapbox-token-here
+</file>
+
+<file path="frontend/next.config.mjs">
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  reactStrictMode: true,
+  env: {
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001',
+    NEXT_PUBLIC_WS_URL: process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:3001',
+    NEXT_PUBLIC_MAPBOX_TOKEN: process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '',
+  },
+};
+
+export default nextConfig;
+</file>
+
+<file path="frontend/postcss.config.js">
+module.exports = {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+};
+</file>
+
+<file path="frontend/src/app/captain/page.tsx">
+'use client';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { motion } from 'framer-motion';
+import { useAuth } from '@/hooks/useAuth';
+import api from '@/lib/api';
+import { Shipment, Vessel } from '@/types';
+
+export default function CaptainPage() {
+  const { isAuthenticated, user, logout } = useAuth();
+  const router = useRouter();
+  const [shipments, setShipments] = useState<Shipment[]>([]);
+  const [vessels, setVessels] = useState<Vessel[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const [form, setForm] = useState({
+    shipment_id: '',
+    vessel_id: '',
+    report_type: 'OPERATIONAL',
+    severity: 'MEDIUM',
+    title: '',
+    description: '',
+    current_lat: '',
+    current_lng: '',
+    fuel_remaining_percent: '',
+    current_speed_knots: '',
+    estimated_repair_hours: '',
+    can_continue_under_power: true,
+    requires_tow: false,
+  });
+
+  useEffect(() => {
+    if (!isAuthenticated) { router.push('/login'); return; }
+    if (user?.role !== 'CAPTAIN' && user?.role !== 'ADMIN') {
+      router.push('/dashboard');
+      return;
+    }
+    Promise.all([
+      api.get<Shipment[]>('/api/shipments'),
+    ]).then(([sRes]) => {
+      setShipments(sRes.data);
+    }).catch(console.error);
+  }, [isAuthenticated, user, router]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    try {
+      await api.post('/api/captain-reports', {
+        ...form,
+        current_lat: form.current_lat ? parseFloat(form.current_lat) : undefined,
+        current_lng: form.current_lng ? parseFloat(form.current_lng) : undefined,
+        fuel_remaining_percent: form.fuel_remaining_percent ? parseFloat(form.fuel_remaining_percent) : undefined,
+        current_speed_knots: form.current_speed_knots ? parseFloat(form.current_speed_knots) : undefined,
+        estimated_repair_hours: form.estimated_repair_hours ? parseInt(form.estimated_repair_hours) : undefined,
+      });
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 3000);
+      setForm({ shipment_id: '', vessel_id: '', report_type: 'OPERATIONAL', severity: 'MEDIUM', title: '', description: '', current_lat: '', current_lng: '', fuel_remaining_percent: '', current_speed_knots: '', estimated_repair_hours: '', can_continue_under_power: true, requires_tow: false });
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to submit report');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!isAuthenticated) return null;
+
+  return (
+    <div className="min-h-screen bg-bg flex flex-col">
+      <nav className="bg-surface border-b border-border px-6 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <span className="text-2xl">🚢</span>
+          <span className="text-text-primary font-bold text-lg">Voyagers Tribute</span>
+        </div>
+        <div className="flex items-center gap-6">
+          <Link href="/dashboard" className="text-text-secondary hover:text-text-primary text-sm">Dashboard</Link>
+          <Link href="/shipments" className="text-text-secondary hover:text-text-primary text-sm">Shipments</Link>
+          <Link href="/captain" className="text-accent-primary text-sm font-medium">Report</Link>
+          <button onClick={logout} className="text-xs text-danger hover:text-danger/80">Logout</button>
+        </div>
+      </nav>
+
+      <main className="flex-1 p-6 max-w-2xl mx-auto w-full">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+          <h1 className="text-2xl font-bold text-text-primary mb-6">Captain Report</h1>
+          <div className="glass-card rounded-xl p-6">
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm text-text-secondary mb-1">Shipment</label>
+                  <select
+                    value={form.shipment_id}
+                    onChange={(e) => setForm({ ...form, shipment_id: e.target.value })}
+                    required
+                    className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-text-primary text-sm focus:outline-none focus:border-accent-primary"
+                  >
+                    <option value="">Select shipment</option>
+                    {shipments.map((s) => (
+                      <option key={s.id} value={s.id}>{s.shipment_id_display} - {s.origin_port_name} → {s.destination_port_name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm text-text-secondary mb-1">Vessel ID</label>
+                  <input
+                    type="text"
+                    value={form.vessel_id}
+                    onChange={(e) => setForm({ ...form, vessel_id: e.target.value })}
+                    required
+                    placeholder="Vessel UUID"
+                    className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-text-primary text-sm focus:outline-none focus:border-accent-primary"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm text-text-secondary mb-1">Report Type</label>
+                  <select
+                    value={form.report_type}
+                    onChange={(e) => setForm({ ...form, report_type: e.target.value })}
+                    className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-text-primary text-sm focus:outline-none focus:border-accent-primary"
+                  >
+                    {['OPERATIONAL', 'MECHANICAL_FAILURE', 'WEATHER', 'FUEL_LOW', 'CREW_EMERGENCY', 'GEOPOLITICAL'].map(t => (
+                      <option key={t} value={t}>{t}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm text-text-secondary mb-1">Severity</label>
+                  <select
+                    value={form.severity}
+                    onChange={(e) => setForm({ ...form, severity: e.target.value })}
+                    className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-text-primary text-sm focus:outline-none focus:border-accent-primary"
+                  >
+                    {['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'].map(s => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm text-text-secondary mb-1">Title</label>
+                <input
+                  type="text"
+                  value={form.title}
+                  onChange={(e) => setForm({ ...form, title: e.target.value })}
+                  required
+                  placeholder="Brief description of the issue"
+                  className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-text-primary text-sm focus:outline-none focus:border-accent-primary"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-text-secondary mb-1">Description</label>
+                <textarea
+                  value={form.description}
+                  onChange={(e) => setForm({ ...form, description: e.target.value })}
+                  rows={3}
+                  placeholder="Detailed description..."
+                  className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-text-primary text-sm focus:outline-none focus:border-accent-primary resize-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm text-text-secondary mb-1">Current Latitude</label>
+                  <input
+                    type="number"
+                    step="0.0001"
+                    value={form.current_lat}
+                    onChange={(e) => setForm({ ...form, current_lat: e.target.value })}
+                    placeholder="e.g. 31.2304"
+                    className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-text-primary text-sm focus:outline-none focus:border-accent-primary"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-text-secondary mb-1">Current Longitude</label>
+                  <input
+                    type="number"
+                    step="0.0001"
+                    value={form.current_lng}
+                    onChange={(e) => setForm({ ...form, current_lng: e.target.value })}
+                    placeholder="e.g. 121.4737"
+                    className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-text-primary text-sm focus:outline-none focus:border-accent-primary"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm text-text-secondary mb-1">Fuel %</label>
+                  <input
+                    type="number"
+                    min="0" max="100"
+                    value={form.fuel_remaining_percent}
+                    onChange={(e) => setForm({ ...form, fuel_remaining_percent: e.target.value })}
+                    placeholder="75"
+                    className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-text-primary text-sm focus:outline-none focus:border-accent-primary"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-text-secondary mb-1">Speed (knots)</label>
+                  <input
+                    type="number"
+                    value={form.current_speed_knots}
+                    onChange={(e) => setForm({ ...form, current_speed_knots: e.target.value })}
+                    placeholder="18"
+                    className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-text-primary text-sm focus:outline-none focus:border-accent-primary"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-text-secondary mb-1">Repair Hours</label>
+                  <input
+                    type="number"
+                    value={form.estimated_repair_hours}
+                    onChange={(e) => setForm({ ...form, estimated_repair_hours: e.target.value })}
+                    placeholder="0"
+                    className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-text-primary text-sm focus:outline-none focus:border-accent-primary"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-6">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.can_continue_under_power}
+                    onChange={(e) => setForm({ ...form, can_continue_under_power: e.target.checked })}
+                    className="rounded"
+                  />
+                  <span className="text-sm text-text-secondary">Can continue under power</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.requires_tow}
+                    onChange={(e) => setForm({ ...form, requires_tow: e.target.checked })}
+                    className="rounded"
+                  />
+                  <span className="text-sm text-text-secondary">Requires tow</span>
+                </label>
+              </div>
+
+              {error && (
+                <div className="text-danger text-sm bg-danger/10 border border-danger/30 rounded-lg px-3 py-2">
+                  {error}
+                </div>
+              )}
+              {success && (
+                <div className="text-success text-sm bg-success/10 border border-success/30 rounded-lg px-3 py-2">
+                  ✓ Report submitted successfully!
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-accent-primary text-bg font-semibold py-3 rounded-lg hover:bg-accent-primary/90 transition-colors disabled:opacity-50"
+              >
+                {loading ? 'Submitting...' : 'Submit Report'}
+              </button>
+            </form>
+          </div>
+        </motion.div>
+      </main>
+    </div>
+  );
+}
+</file>
+
+<file path="frontend/src/app/dashboard/page.tsx">
+'use client';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
+import Link from 'next/link';
+import { useAuth } from '@/hooks/useAuth';
+import api from '@/lib/api';
+import { Shipment, Disruption } from '@/types';
+import StatusBadge from '@/components/ui/StatusBadge';
+import dynamic from 'next/dynamic';
+
+const WorldMap = dynamic(() => import('@/components/map/WorldMap'), { ssr: false });
+
+export default function DashboardPage() {
+  const { user, logout, isAuthenticated } = useAuth();
+  const router = useRouter();
+  const [shipments, setShipments] = useState<Shipment[]>([]);
+  const [disruptions, setDisruptions] = useState<Disruption[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [apiError, setApiError] = useState(false);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.push('/login');
+      return;
+    }
+
+    const fetchData = async () => {
+      setLoading(true);
+      setApiError(false);
+      try {
+        const [shipmentsRes, disruptionsRes] = await Promise.all([
+          api.get<Shipment[]>('/api/shipments'),
+          api.get<Disruption[]>('/api/disruptions'),
+        ]);
+        setShipments(shipmentsRes.data);
+        setDisruptions(disruptionsRes.data);
+      } catch (err) {
+        console.warn('[Dashboard] API unavailable — rendering with empty data.', err);
+        setApiError(true);
+        // Keep empty arrays; the UI will show placeholder states.
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [isAuthenticated, router]);
+
+  const stats = {
+    total: shipments.length,
+    inTransit: shipments.filter((s) => s.status === 'IN_TRANSIT').length,
+    delayed: shipments.filter((s) => s.status === 'DELAYED').length,
+    delivered: shipments.filter((s) => s.status === 'DELIVERED').length,
+    activeDisruptions: disruptions.filter(
+      (d) => d.status !== 'RESOLVED' && d.status !== 'DISMISSED'
+    ).length,
+  };
+
+  if (!isAuthenticated) return null;
+
+  return (
+    <div className="min-h-screen bg-bg flex flex-col">
+      {/* Navbar */}
+      <nav className="bg-surface border-b border-border px-6 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <span className="text-2xl">🚢</span>
+          <span className="text-text-primary font-bold text-lg">Voyagers Tribute</span>
+        </div>
+        <div className="flex items-center gap-6">
+          <Link href="/dashboard" className="text-accent-primary text-sm font-medium">
+            Dashboard
+          </Link>
+          <Link href="/shipments" className="text-text-secondary hover:text-text-primary text-sm">
+            Shipments
+          </Link>
+          {user?.role === 'CAPTAIN' && (
+            <Link href="/captain" className="text-text-secondary hover:text-text-primary text-sm">
+              Report
+            </Link>
+          )}
+          <div className="flex items-center gap-2">
+            <span className="text-text-secondary text-sm">{user?.first_name || user?.email}</span>
+            <button onClick={logout} className="text-xs text-danger hover:text-danger/80">
+              Logout
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      <main className="flex-1 p-6 space-y-6">
+        {/* Backend offline banner */}
+        {apiError && (
+          <div className="rounded-lg border border-warning/30 bg-warning/10 px-4 py-3 text-warning text-sm flex items-center gap-2">
+            <span>⚠️</span>
+            <span>
+              Backend unreachable — displaying demo shell. Start the backend and refresh to load
+              live data.
+            </span>
+          </div>
+        )}
+
+        {/* Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          {[
+            { label: 'Total Shipments', value: stats.total, color: 'text-text-primary' },
+            { label: 'In Transit', value: stats.inTransit, color: 'text-accent-primary' },
+            { label: 'Delayed', value: stats.delayed, color: 'text-warning' },
+            { label: 'Delivered', value: stats.delivered, color: 'text-success' },
+            { label: 'Active Disruptions', value: stats.activeDisruptions, color: 'text-danger' },
+          ].map((stat) => (
+            <motion.div
+              key={stat.label}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="glass-card rounded-xl p-4"
+            >
+              <p className="text-text-secondary text-xs mb-1">{stat.label}</p>
+              <p className={`text-3xl font-bold ${stat.color}`}>
+                {loading ? '—' : stat.value}
+              </p>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Map */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2 }}
+          className="glass-card rounded-xl overflow-hidden"
+          style={{ height: 420 }}
+        >
+          <div className="px-4 py-3 border-b border-border flex items-center gap-2">
+            <span className="text-accent-primary text-sm font-medium">🌍 Live Fleet Map</span>
+          </div>
+          {/* Render map shell even while loading; WorldMap handles empty shipments gracefully */}
+          <WorldMap shipments={shipments} />
+        </motion.div>
+
+        {/* Shipments & Disruptions */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Recent Shipments */}
+          <div className="glass-card rounded-xl p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-text-primary font-semibold">Recent Shipments</h2>
+              <Link href="/shipments" className="text-accent-primary text-xs hover:underline">
+                View all →
+              </Link>
+            </div>
+            {loading ? (
+              <div className="text-text-secondary text-sm text-center py-8">Loading…</div>
+            ) : shipments.length === 0 ? (
+              <div className="text-text-secondary text-sm text-center py-8 space-y-1">
+                <p>No shipments found</p>
+                {apiError && (
+                  <p className="text-xs opacity-60">
+                    Run <code className="bg-surface px-1 rounded">npm run seed</code> in the
+                    backend to load demo data
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {shipments.slice(0, 5).map((s) => (
+                  <Link key={s.id} href={`/shipments/${s.shipment_id_display}`}>
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-bg hover:bg-surface/50 transition-colors cursor-pointer border border-border/50">
+                      <div>
+                        <p className="text-text-primary text-sm font-medium">
+                          {s.shipment_id_display}
+                        </p>
+                        <p className="text-text-secondary text-xs">
+                          {s.origin_port_name} → {s.destination_port_name}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <StatusBadge status={s.status} />
+                        <p className="text-text-secondary text-xs mt-1">{s.progress_percent}%</p>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Active Disruptions */}
+          <div className="glass-card rounded-xl p-4">
+            <h2 className="text-text-primary font-semibold mb-4">Active Disruptions</h2>
+            {loading ? (
+              <div className="text-text-secondary text-sm text-center py-8">Loading…</div>
+            ) : disruptions.filter((d) => d.status !== 'RESOLVED').length === 0 ? (
+              <div className="text-success text-sm text-center py-8">✓ No active disruptions</div>
+            ) : (
+              <div className="space-y-3">
+                {disruptions
+                  .filter((d) => d.status !== 'RESOLVED')
+                  .slice(0, 5)
+                  .map((d) => (
+                    <div key={d.id} className="p-3 rounded-lg bg-bg border border-border/50">
+                      <div className="flex items-center justify-between">
+                        <p className="text-text-primary text-sm font-medium">{d.title}</p>
+                        <span
+                          className={`text-xs px-2 py-0.5 rounded-full ${
+                            d.severity === 'CRITICAL'
+                              ? 'bg-danger/20 text-danger'
+                              : d.severity === 'HIGH'
+                              ? 'bg-orange-500/20 text-orange-400'
+                              : d.severity === 'MEDIUM'
+                              ? 'bg-warning/20 text-warning'
+                              : 'bg-success/20 text-success'
+                          }`}
+                        >
+                          {d.severity}
+                        </span>
+                      </div>
+                      <p className="text-text-secondary text-xs mt-1">
+                        {d.type} · {d.status}
+                      </p>
+                    </div>
+                  ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
+</file>
+
+<file path="frontend/src/app/globals.css">
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #0a0e27;
+  --surface: #1a1f3a;
+  --accent-primary: #00d4ff;
+  --accent-secondary: #ff006e;
+  --success: #00ff41;
+  --warning: #ffd60a;
+  --danger: #ff006e;
+  --text-primary: #e0e0ff;
+  --text-secondary: #a0a0c0;
+  --border: #2a3555;
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  background-color: var(--bg);
+  color: var(--text-primary);
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--surface);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-primary);
+}
+
+.mapboxgl-map {
+  border-radius: 8px;
+}
+
+.neon-glow {
+  text-shadow: 0 0 10px var(--accent-primary), 0 0 20px var(--accent-primary);
+}
+
+.neon-border {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+}
+
+.glass-card {
+  background: rgba(26, 31, 58, 0.8);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+}
+</file>
+
+<file path="frontend/src/app/layout.tsx">
+'use client';
+
+// @ts-expect-error CSS import for global styles
+import './globals.css';
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <body className="bg-bg text-text-primary min-h-screen">
+        {children}
+      </body>
+    </html>
+  );
+}
+</file>
+
+<file path="frontend/src/app/login/page.tsx">
+'use client';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
+import { useAuth } from '@/hooks/useAuth';
+
+export default function LoginPage() {
+  const { login, loading, error, isAuthenticated } = useAuth();
+  const router = useRouter();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+
+  useEffect(() => {
+    if (isAuthenticated) router.push('/dashboard');
+  }, [isAuthenticated, router]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await login(email, password);
+  };
+
+  const demoUsers = [
+    { label: 'Buyer (Rotterdam)', email: 'import@globaltrade.com', password: 'password123' },
+    { label: 'Seller (Shanghai)', email: 'export@shanghaiexports.com', password: 'password123' },
+    { label: 'Captain (Vessel 1)', email: 'capt.zhang@vessel1.com', password: 'password123' },
+  ];
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-bg relative overflow-hidden">
+      {/* Background grid */}
+      <div className="absolute inset-0 opacity-10"
+        style={{
+          backgroundImage: 'linear-gradient(rgba(0,212,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0,212,255,0.1) 1px, transparent 1px)',
+          backgroundSize: '50px 50px',
+        }}
+      />
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className="glass-card p-8 rounded-2xl w-full max-w-md z-10"
+      >
+        <div className="text-center mb-8">
+          <div className="text-4xl mb-3">🚢</div>
+          <h1 className="text-2xl font-bold text-text-primary neon-glow">Voyagers Tribute</h1>
+          <p className="text-text-secondary mt-1 text-sm">Maritime Supply Chain Intelligence</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div>
+            <label className="block text-sm text-text-secondary mb-1">Email</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="w-full bg-surface border border-border rounded-lg px-4 py-3 text-text-primary placeholder-text-secondary focus:outline-none focus:border-accent-primary transition-colors"
+              placeholder="captain@vessel.com"
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-text-secondary mb-1">Password</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className="w-full bg-surface border border-border rounded-lg px-4 py-3 text-text-primary placeholder-text-secondary focus:outline-none focus:border-accent-primary transition-colors"
+              placeholder="••••••••"
+            />
+          </div>
+          {error && (
+            <div className="text-danger text-sm bg-danger/10 border border-danger/30 rounded-lg px-3 py-2">
+              {error}
+            </div>
+          )}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-accent-primary text-bg font-semibold py-3 rounded-lg hover:bg-accent-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? 'Signing in...' : 'Sign In'}
+          </button>
+        </form>
+
+        <div className="mt-6">
+          <p className="text-text-secondary text-xs text-center mb-3">Quick Demo Login</p>
+          <div className="space-y-2">
+            {demoUsers.map((u) => (
+              <button
+                key={u.email}
+                onClick={() => { setEmail(u.email); setPassword(u.password); }}
+                className="w-full text-left px-3 py-2 rounded-lg bg-surface/50 border border-border hover:border-accent-primary/50 transition-colors"
+              >
+                <span className="text-xs text-accent-primary font-medium">{u.label}</span>
+                <span className="text-xs text-text-secondary ml-2">{u.email}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+</file>
+
+<file path="frontend/src/app/page.tsx">
+import { redirect } from 'next/navigation';
+
+export default function Home() {
+  redirect('/dashboard');
+}
+</file>
+
+<file path="frontend/src/app/shipments/[id]/page.tsx">
+'use client';
+import { useState, useEffect } from 'react';
+import { useRouter, useParams } from 'next/navigation';
+import Link from 'next/link';
+import { motion } from 'framer-motion';
+import { useAuth } from '@/hooks/useAuth';
+import { useSimulation } from '@/hooks/useSimulation';
+import api from '@/lib/api';
+import { Shipment, Disruption, Recommendation } from '@/types';
+import StatusBadge from '@/components/ui/StatusBadge';
+import DisruptionList from '@/components/disruptions/DisruptionList';
+import SimulationControls from '@/components/simulation/SimulationControls';
+
+export default function ShipmentDetailPage() {
+  const { isAuthenticated, user, logout } = useAuth();
+  const router = useRouter();
+  const params = useParams();
+  const id = params?.id as string;
+
+  const [shipment, setShipment] = useState<Shipment | null>(null);
+  const [disruptions, setDisruptions] = useState<Disruption[]>([]);
+  const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const { advance, reset } = useSimulation(id);
+
+  useEffect(() => {
+    if (!isAuthenticated) { router.push('/login'); return; }
+    if (!id) return;
+    const fetchAll = async () => {
+      try {
+        const [sRes, dRes, rRes] = await Promise.all([
+          api.get<Shipment>(`/api/shipments/${id}`),
+          api.get<Disruption[]>(`/api/disruptions?shipment_id=${id}`),
+          api.get<Recommendation[]>(`/api/recommendations?shipment_id=${id}`),
+        ]);
+        setShipment(sRes.data);
+        setDisruptions(dRes.data);
+        setRecommendations(rRes.data);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAll();
+  }, [isAuthenticated, router, id]);
+
+  const handleAdvance = async () => {
+    await advance(1);
+    // Refresh
+    const [sRes, dRes] = await Promise.all([
+      api.get<Shipment>(`/api/shipments/${id}`),
+      api.get<Disruption[]>(`/api/disruptions?shipment_id=${id}`),
+    ]);
+    setShipment(sRes.data);
+    setDisruptions(dRes.data);
+  };
+
+  const handleReset = async () => {
+    await reset();
+    const sRes = await api.get<Shipment>(`/api/shipments/${id}`);
+    setShipment(sRes.data);
+  };
+
+  const handleApprove = async (recId: string) => {
+    await api.put(`/api/recommendations/${recId}/approve`);
+    const rRes = await api.get<Recommendation[]>(`/api/recommendations?shipment_id=${id}`);
+    setRecommendations(rRes.data);
+  };
+
+  if (!isAuthenticated) return null;
+
+  return (
+    <div className="min-h-screen bg-bg flex flex-col">
+      <nav className="bg-surface border-b border-border px-6 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <span className="text-2xl">🚢</span>
+          <span className="text-text-primary font-bold text-lg">Voyagers Tribute</span>
+        </div>
+        <div className="flex items-center gap-6">
+          <Link href="/dashboard" className="text-text-secondary hover:text-text-primary text-sm">Dashboard</Link>
+          <Link href="/shipments" className="text-accent-primary text-sm font-medium">Shipments</Link>
+          {user?.role === 'CAPTAIN' && (
+            <Link href="/captain" className="text-text-secondary hover:text-text-primary text-sm">Report</Link>
+          )}
+          <button onClick={logout} className="text-xs text-danger hover:text-danger/80">Logout</button>
+        </div>
+      </nav>
+
+      <main className="flex-1 p-6">
+        {loading ? (
+          <div className="text-center py-20 text-text-secondary">Loading shipment details...</div>
+        ) : !shipment ? (
+          <div className="text-center py-20 text-danger">Shipment not found</div>
+        ) : (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+            {/* Header */}
+            <div className="flex items-start justify-between">
+              <div>
+                <div className="flex items-center gap-3">
+                  <h1 className="text-2xl font-bold text-text-primary font-mono">{shipment.shipment_id_display}</h1>
+                  <StatusBadge status={shipment.status} />
+                </div>
+                <p className="text-text-secondary mt-1">
+                  {shipment.origin_port_name} → {shipment.destination_port_name}
+                </p>
+              </div>
+              <Link href="/shipments">
+                <button className="text-text-secondary text-sm hover:text-text-primary">← Back</button>
+              </Link>
+            </div>
+
+            {/* Progress Bar */}
+            <div className="glass-card rounded-xl p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-text-secondary text-sm">Voyage Progress</span>
+                <span className="text-accent-primary font-bold">{shipment.progress_percent}%</span>
+              </div>
+              <div className="w-full bg-bg rounded-full h-3">
+                <div
+                  className="h-3 rounded-full transition-all duration-500"
+                  style={{
+                    width: `${shipment.progress_percent}%`,
+                    background: 'linear-gradient(90deg, #00d4ff, #00ff41)',
+                  }}
+                />
+              </div>
+              <div className="flex justify-between mt-1">
+                <span className="text-xs text-text-secondary">{shipment.origin_port_name}</span>
+                <span className="text-xs text-text-secondary">Day {shipment.simulation_day}</span>
+                <span className="text-xs text-text-secondary">{shipment.destination_port_name}</span>
+              </div>
+            </div>
+
+            {/* Info Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Cargo */}
+              <div className="glass-card rounded-xl p-4">
+                <h3 className="text-text-secondary text-xs uppercase tracking-wider mb-3">Cargo Details</h3>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-text-secondary text-sm">Type</span>
+                    <span className="text-text-primary text-sm">{shipment.cargo_type}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-text-secondary text-sm">Weight</span>
+                    <span className="text-text-primary text-sm">{shipment.cargo_weight_tons?.toLocaleString()} tons</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-text-secondary text-sm">Containers</span>
+                    <span className="text-text-primary text-sm">{shipment.cargo_containers || 'N/A'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-text-secondary text-sm">Value</span>
+                    <span className="text-accent-primary text-sm">${((shipment.cargo_value_usd || 0) / 1e6).toFixed(1)}M</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Vessel */}
+              <div className="glass-card rounded-xl p-4">
+                <h3 className="text-text-secondary text-xs uppercase tracking-wider mb-3">Vessel</h3>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-text-secondary text-sm">Name</span>
+                    <span className="text-text-primary text-sm">{shipment.vessel_name}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-text-secondary text-sm">Type</span>
+                    <span className="text-text-primary text-sm">{shipment.vessel_type}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-text-secondary text-sm">Speed</span>
+                    <span className="text-text-primary text-sm">{shipment.current_speed_knots || '—'} kts</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-text-secondary text-sm">Position</span>
+                    <span className="text-text-secondary text-xs">
+                      {shipment.current_lat?.toFixed(2)}, {shipment.current_lng?.toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Timeline */}
+              <div className="glass-card rounded-xl p-4">
+                <h3 className="text-text-secondary text-xs uppercase tracking-wider mb-3">Timeline</h3>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-text-secondary text-sm">Departed</span>
+                    <span className="text-text-primary text-sm">{new Date(shipment.departure_date).toLocaleDateString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-text-secondary text-sm">Scheduled</span>
+                    <span className="text-text-primary text-sm">{new Date(shipment.scheduled_arrival).toLocaleDateString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-text-secondary text-sm">Current ETA</span>
+                    <span className={`text-sm ${shipment.current_eta && new Date(shipment.current_eta) > new Date(shipment.scheduled_arrival) ? 'text-warning' : 'text-success'}`}>
+                      {shipment.current_eta ? new Date(shipment.current_eta).toLocaleDateString() : '—'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Simulation Controls */}
+            <SimulationControls
+              shipmentId={id}
+              simulationDay={shipment.simulation_day}
+              onAdvance={handleAdvance}
+              onReset={handleReset}
+            />
+
+            {/* Disruptions */}
+            <DisruptionList disruptions={disruptions} />
+
+            {/* Recommendations */}
+            <div className="glass-card rounded-xl p-4">
+              <h3 className="text-text-primary font-semibold mb-4">AI Recommendations</h3>
+              {recommendations.length === 0 ? (
+                <p className="text-text-secondary text-sm text-center py-6">No recommendations</p>
+              ) : (
+                <div className="space-y-3">
+                  {recommendations.map((r) => (
+                    <div key={r.id} className="bg-bg border border-border/50 rounded-lg p-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs bg-accent-primary/20 text-accent-primary px-2 py-0.5 rounded">{r.type}</span>
+                            <span className="text-xs text-text-secondary">{r.recommendation_id_display}</span>
+                          </div>
+                          <p className="text-text-primary text-sm mt-2">{r.description}</p>
+                          <div className="flex gap-4 mt-2 text-xs text-text-secondary">
+                            {r.cost_delta_usd !== undefined && (
+                              <span className={r.cost_delta_usd > 0 ? 'text-warning' : 'text-success'}>
+                                {r.cost_delta_usd > 0 ? '+' : ''}{(r.cost_delta_usd / 1000).toFixed(0)}K USD
+                              </span>
+                            )}
+                            {r.time_delta_days !== undefined && (
+                              <span className={r.time_delta_days > 0 ? 'text-warning' : 'text-success'}>
+                                {r.time_delta_days > 0 ? '+' : ''}{r.time_delta_days} days
+                              </span>
+                            )}
+                            {r.risk_reduction_percent && (
+                              <span className="text-success">-{r.risk_reduction_percent}% risk</span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="ml-4 flex flex-col items-end gap-2">
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${
+                            r.status === 'APPROVED' ? 'bg-success/20 text-success' :
+                            r.status === 'REJECTED' ? 'bg-danger/20 text-danger' :
+                            r.status === 'AUTO_EXECUTED' ? 'bg-accent-primary/20 text-accent-primary' :
+                            'bg-warning/20 text-warning'
+                          }`}>{r.status}</span>
+                          {r.status === 'PENDING_APPROVAL' && (
+                            <button
+                              onClick={() => handleApprove(r.id)}
+                              className="text-xs bg-success/20 text-success border border-success/30 px-3 py-1 rounded hover:bg-success/30 transition-colors"
+                            >
+                              Approve
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </main>
+    </div>
+  );
+}
+</file>
+
+<file path="frontend/src/app/shipments/page.tsx">
+'use client';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { motion } from 'framer-motion';
+import { useAuth } from '@/hooks/useAuth';
+import api from '@/lib/api';
+import { Shipment } from '@/types';
+import StatusBadge from '@/components/ui/StatusBadge';
+
+export default function ShipmentsPage() {
+  const { isAuthenticated, user, logout } = useAuth();
+  const router = useRouter();
+  const [shipments, setShipments] = useState<Shipment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState('');
+
+  useEffect(() => {
+    if (!isAuthenticated) { router.push('/login'); return; }
+    api.get<Shipment[]>('/api/shipments').then((res) => {
+      setShipments(res.data);
+    }).catch(console.error).finally(() => setLoading(false));
+  }, [isAuthenticated, router]);
+
+  const filtered = shipments.filter((s) =>
+    !filter || s.status === filter ||
+    s.shipment_id_display?.toLowerCase().includes(filter.toLowerCase()) ||
+    s.origin_port_name?.toLowerCase().includes(filter.toLowerCase()) ||
+    s.destination_port_name?.toLowerCase().includes(filter.toLowerCase())
+  );
+
+  if (!isAuthenticated) return null;
+
+  return (
+    <div className="min-h-screen bg-bg flex flex-col">
+      <nav className="bg-surface border-b border-border px-6 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <span className="text-2xl">🚢</span>
+          <span className="text-text-primary font-bold text-lg">Voyagers Tribute</span>
+        </div>
+        <div className="flex items-center gap-6">
+          <Link href="/dashboard" className="text-text-secondary hover:text-text-primary text-sm">Dashboard</Link>
+          <Link href="/shipments" className="text-accent-primary text-sm font-medium">Shipments</Link>
+          {user?.role === 'CAPTAIN' && (
+            <Link href="/captain" className="text-text-secondary hover:text-text-primary text-sm">Report</Link>
+          )}
+          <div className="flex items-center gap-2">
+            <span className="text-text-secondary text-sm">{user?.first_name || user?.email}</span>
+            <button onClick={logout} className="text-xs text-danger hover:text-danger/80">Logout</button>
+          </div>
+        </div>
+      </nav>
+
+      <main className="flex-1 p-6">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-2xl font-bold text-text-primary">Shipment Ledger</h1>
+            <input
+              type="text"
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              placeholder="Filter shipments..."
+              className="bg-surface border border-border rounded-lg px-4 py-2 text-text-primary text-sm focus:outline-none focus:border-accent-primary w-64"
+            />
+          </div>
+
+          <div className="glass-card rounded-xl overflow-hidden">
+            {loading ? (
+              <div className="text-center py-16 text-text-secondary">Loading shipments...</div>
+            ) : (
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-border">
+                    {['ID', 'Route', 'Cargo', 'Vessel', 'Progress', 'Status', 'Arrival', ''].map((h) => (
+                      <th key={h} className="text-left px-4 py-3 text-text-secondary text-xs font-medium uppercase tracking-wider">
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((s, i) => (
+                    <motion.tr
+                      key={s.id}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.05 }}
+                      className="border-b border-border/50 hover:bg-surface/50 transition-colors"
+                    >
+                      <td className="px-4 py-3">
+                        <span className="text-accent-primary text-sm font-mono">{s.shipment_id_display}</span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <p className="text-text-primary text-sm">{s.origin_port_name}</p>
+                        <p className="text-text-secondary text-xs">→ {s.destination_port_name}</p>
+                      </td>
+                      <td className="px-4 py-3">
+                        <p className="text-text-primary text-sm">{s.cargo_type}</p>
+                        <p className="text-text-secondary text-xs">{s.cargo_weight_tons?.toLocaleString()} tons</p>
+                      </td>
+                      <td className="px-4 py-3">
+                        <p className="text-text-primary text-sm">{s.vessel_name}</p>
+                        <p className="text-text-secondary text-xs">{s.vessel_type}</p>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 bg-bg rounded-full h-1.5 w-20">
+                            <div
+                              className="h-1.5 rounded-full bg-accent-primary"
+                              style={{ width: `${s.progress_percent}%` }}
+                            />
+                          </div>
+                          <span className="text-text-secondary text-xs">{s.progress_percent}%</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <StatusBadge status={s.status} />
+                      </td>
+                      <td className="px-4 py-3">
+                        <p className="text-text-secondary text-xs">
+                          {new Date(s.scheduled_arrival).toLocaleDateString()}
+                        </p>
+                      </td>
+                      <td className="px-4 py-3">
+                        <Link href={`/shipments/${s.shipment_id_display}`}>
+                          <button className="text-accent-primary text-xs hover:underline">View →</button>
+                        </Link>
+                      </td>
+                    </motion.tr>
+                  ))}
+                  {filtered.length === 0 && (
+                    <tr>
+                      <td colSpan={8} className="text-center py-12 text-text-secondary">
+                        No shipments found
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </motion.div>
+      </main>
+    </div>
+  );
+}
+</file>
+
+<file path="frontend/src/components/disruptions/DisruptionList.tsx">
+'use client';
+import { Disruption } from '@/types';
+
+const SEVERITY_COLORS: Record<string, { bg: string; text: string }> = {
+  LOW: { bg: 'bg-success/20', text: 'text-success' },
+  MEDIUM: { bg: 'bg-warning/20', text: 'text-warning' },
+  HIGH: { bg: 'bg-orange-500/20', text: 'text-orange-400' },
+  CRITICAL: { bg: 'bg-danger/20', text: 'text-danger' },
+};
+
+const STATUS_ICON: Record<string, string> = {
+  OPEN: '🔴',
+  INVESTIGATING: '🟡',
+  RESOLVED: '🟢',
+  DISMISSED: '⚫',
+};
+
+interface DisruptionListProps {
+  disruptions: Disruption[];
+}
+
+export default function DisruptionList({ disruptions }: DisruptionListProps) {
+  return (
+    <div className="glass-card rounded-xl p-4">
+      <h3 className="text-text-primary font-semibold mb-4">
+        Disruptions
+        {disruptions.length > 0 && (
+          <span className="ml-2 text-xs bg-surface px-2 py-0.5 rounded-full text-text-secondary">
+            {disruptions.length}
+          </span>
+        )}
+      </h3>
+      {disruptions.length === 0 ? (
+        <p className="text-success text-sm text-center py-6">✓ No disruptions reported</p>
+      ) : (
+        <div className="space-y-3">
+          {disruptions.map((d) => {
+            const sev = SEVERITY_COLORS[d.severity] || SEVERITY_COLORS.MEDIUM;
+            return (
+              <div key={d.id} className="bg-bg border border-border/50 rounded-lg p-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span>{STATUS_ICON[d.status] || '⚪'}</span>
+                      <span className="text-text-primary text-sm font-medium">{d.title}</span>
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${sev.bg} ${sev.text}`}>
+                        {d.severity}
+                      </span>
+                    </div>
+                    <p className="text-text-secondary text-xs mt-1">{d.description}</p>
+                    <div className="flex gap-4 mt-2 text-xs text-text-secondary">
+                      <span>{d.type}</span>
+                      <span>·</span>
+                      <span>Detected: {new Date(d.detected_at).toLocaleDateString()}</span>
+                      {d.estimated_delay_hours && (
+                        <>
+                          <span>·</span>
+                          <span className="text-warning">+{d.estimated_delay_hours}h delay</span>
+                        </>
+                      )}
+                      {d.cost_impact_usd && (
+                        <>
+                          <span>·</span>
+                          <span className="text-danger">${(d.cost_impact_usd / 1000).toFixed(0)}K impact</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  <span className={`ml-3 text-xs px-2 py-0.5 rounded ${
+                    d.status === 'RESOLVED' ? 'bg-success/20 text-success' :
+                    d.status === 'OPEN' ? 'bg-danger/20 text-danger' :
+                    'bg-warning/20 text-warning'
+                  }`}>
+                    {d.status}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+</file>
+
+<file path="frontend/src/components/map/WorldMap.tsx">
+'use client';
+import { useEffect, useRef } from 'react';
+import { Shipment } from '@/types';
+
+interface WorldMapProps {
+  shipments: Shipment[];
+}
+
+declare global {
+  interface Window {
+    mapboxgl: {
+      Map: new (options: MapOptions) => MapInstance;
+      Marker: new (options?: MarkerOptions) => MarkerInstance;
+      accessToken: string;
+      supported: () => boolean;
+    };
+  }
+}
+
+interface MapOptions {
+  container: HTMLElement | string;
+  style: string;
+  center: [number, number];
+  zoom: number;
+  projection?: string;
+}
+
+interface MapInstance {
+  on: (event: string, callback: () => void) => void;
+  remove: () => void;
+  addControl: (control: unknown, position?: string) => void;
+}
+
+interface MarkerOptions {
+  element?: HTMLElement;
+  color?: string;
+}
+
+interface MarkerInstance {
+  setLngLat: (lngLat: [number, number]) => MarkerInstance;
+  addTo: (map: MapInstance) => MarkerInstance;
+  setPopup: (popup: unknown) => MarkerInstance;
+}
+
+export default function WorldMap({ shipments }: WorldMapProps) {
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<MapInstance | null>(null);
+
+  useEffect(() => {
+    const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+
+    if (!token || !mapContainerRef.current) {
+      return;
+    }
+
+    const loadMap = async () => {
+      try {
+        const mapboxgl = (await import('mapbox-gl')).default;
+        (mapboxgl as unknown as { accessToken: string }).accessToken = token;
+
+        const map = new mapboxgl.Map({
+          container: mapContainerRef.current!,
+          style: 'mapbox://styles/mapbox/dark-v11',
+          center: [20, 20],
+          zoom: 1.5,
+          projection: 'globe',
+        }) as unknown as MapInstance;
+
+        mapRef.current = map;
+
+        map.on('load', () => {
+          // Add vessel markers
+          shipments.forEach((shipment) => {
+            if (shipment.current_lat !== undefined && shipment.current_lng !== undefined) {
+              const el = document.createElement('div');
+              el.style.cssText = `
+                width: 12px; height: 12px; border-radius: 50%;
+                background: ${shipment.status === 'DELAYED' ? '#ffd60a' : shipment.status === 'DELIVERED' ? '#00ff41' : '#00d4ff'};
+                border: 2px solid white; box-shadow: 0 0 8px currentColor; cursor: pointer;
+              `;
+
+              const mb = mapboxgl as unknown as { Marker: new (options: MarkerOptions) => MarkerInstance };
+              new mb.Marker({ element: el })
+                .setLngLat([shipment.current_lng, shipment.current_lat])
+                .addTo(map as unknown as MapInstance);
+            }
+          });
+        });
+      } catch (err) {
+        console.error('Failed to load Mapbox:', err);
+      }
+    };
+
+    loadMap();
+
+    return () => {
+      mapRef.current?.remove();
+    };
+  }, [shipments]);
+
+  const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+
+  if (!token) {
+    // Placeholder map when no Mapbox token
+    return (
+      <div
+        className="w-full h-full flex flex-col items-center justify-center"
+        style={{ background: 'linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #0a0e27 100%)', minHeight: 360 }}
+      >
+        <div className="text-6xl mb-4">🌍</div>
+        <p className="text-text-secondary text-sm">World Map</p>
+        <p className="text-text-secondary text-xs mt-1">Add NEXT_PUBLIC_MAPBOX_TOKEN to enable live map</p>
+        <div className="mt-6 flex gap-6">
+          {shipments.map((s) => (
+            s.current_lat !== undefined && (
+              <div key={s.id} className="text-center">
+                <div
+                  className="w-3 h-3 rounded-full mx-auto mb-1"
+                  style={{
+                    background: s.status === 'DELAYED' ? '#ffd60a' : s.status === 'DELIVERED' ? '#00ff41' : '#00d4ff',
+                    boxShadow: `0 0 8px ${s.status === 'DELAYED' ? '#ffd60a' : s.status === 'DELIVERED' ? '#00ff41' : '#00d4ff'}`,
+                  }}
+                />
+                <p className="text-xs text-text-secondary">{s.vessel_name || s.shipment_id_display}</p>
+                <p className="text-xs text-text-secondary opacity-60">{s.current_lat?.toFixed(1)}°, {s.current_lng?.toFixed(1)}°</p>
+              </div>
+            )
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return <div ref={mapContainerRef} className="w-full h-full" style={{ minHeight: 360 }} />;
+}
+</file>
+
+<file path="frontend/src/components/simulation/SimulationControls.tsx">
+'use client';
+import { motion } from 'framer-motion';
+
+interface SimulationControlsProps {
+  shipmentId: string;
+  simulationDay: number;
+  onAdvance: () => Promise<void>;
+  onReset: () => Promise<void>;
+}
+
+export default function SimulationControls({
+  simulationDay,
+  onAdvance,
+  onReset,
+}: SimulationControlsProps) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="glass-card rounded-xl p-4"
+    >
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-text-primary font-semibold">Simulation Controls</h3>
+          <p className="text-text-secondary text-sm mt-0.5">Current Day: <span className="text-accent-primary font-bold">{simulationDay}</span></p>
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={onReset}
+            className="px-4 py-2 rounded-lg text-sm border border-border text-text-secondary hover:border-accent-primary hover:text-text-primary transition-colors"
+          >
+            Reset
+          </button>
+          <button
+            onClick={onAdvance}
+            className="px-4 py-2 rounded-lg text-sm bg-accent-primary text-bg font-medium hover:bg-accent-primary/90 transition-colors"
+          >
+            Advance 1 Day →
+          </button>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+</file>
+
+<file path="frontend/src/components/ui/StatusBadge.tsx">
+'use client';
+import { ShipmentStatus } from '@/types';
+
+const STATUS_CONFIG: Record<ShipmentStatus, { label: string; bg: string; text: string }> = {
+  PLANNED: { label: 'Planned', bg: 'bg-text-secondary/20', text: 'text-text-secondary' },
+  IN_TRANSIT: { label: 'In Transit', bg: 'bg-accent-primary/20', text: 'text-accent-primary' },
+  DELAYED: { label: 'Delayed', bg: 'bg-warning/20', text: 'text-warning' },
+  AT_PORT: { label: 'At Port', bg: 'bg-success/20', text: 'text-success' },
+  DELIVERED: { label: 'Delivered', bg: 'bg-success/20', text: 'text-success' },
+  CANCELLED: { label: 'Cancelled', bg: 'bg-danger/20', text: 'text-danger' },
+};
+
+interface StatusBadgeProps {
+  status: string;
+}
+
+export default function StatusBadge({ status }: StatusBadgeProps) {
+  const config = STATUS_CONFIG[status as ShipmentStatus] || {
+    label: status,
+    bg: 'bg-text-secondary/20',
+    text: 'text-text-secondary',
+  };
+
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${config.bg} ${config.text}`}>
+      {config.label}
+    </span>
+  );
+}
+</file>
+
+<file path="frontend/src/hooks/useAuth.ts">
+'use client';
+import { useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import api from '@/lib/api';
+import { AuthUser, LoginResponse } from '@/types';
+
+// ─── DEMO BYPASS ──────────────────────────────────────────────────────────────
+// Set BYPASS_AUTH=true to skip the backend entirely for MVP demos.
+// The fake user is stored under the same keys the rest of the app expects.
+const BYPASS_AUTH = true;
+
+const FAKE_USER: AuthUser = {
+  id: '00000000-0000-0000-0000-000000000001',
+  email: 'import@globaltrade.com',
+  role: 'BUYER',
+  first_name: 'Demo',
+  last_name: 'User',
+  company_name: 'Global Trade Inc.',
+};
+
+// A JWT whose payload matches FAKE_USER (signature is intentionally invalid —
+// only used to satisfy the axios interceptor header; the backend is not called
+// in bypass mode).
+const FAKE_TOKEN =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9' +
+  '.eyJpZCI6IjAwMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAwMSIsImVtYWlsIjoiaW1wb3J0QGdsb2JhbHRyYWRlLmNvbSIsInJvbGUiOiJCVVlFUiJ9' +
+  '.bypass';
+
+function ensureBypassSession() {
+  if (typeof window === 'undefined') return;
+  if (!localStorage.getItem('voyager_user')) {
+    localStorage.setItem('voyager_token', FAKE_TOKEN);
+    localStorage.setItem('voyager_user', JSON.stringify(FAKE_USER));
+  }
+}
+// ──────────────────────────────────────────────────────────────────────────────
+
+export function useAuth() {
+  const router = useRouter();
+
+  const [user, setUser] = useState<AuthUser | null>(() => {
+    if (typeof window === 'undefined') return null;
+
+    if (BYPASS_AUTH) {
+      ensureBypassSession();
+    }
+
+    const stored = localStorage.getItem('voyager_user');
+    return stored ? JSON.parse(stored) : null;
+  });
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const login = useCallback(
+    async (email: string, password: string) => {
+      if (BYPASS_AUTH) {
+        // In bypass mode just accept any credentials and go straight to dashboard
+        ensureBypassSession();
+        setUser(FAKE_USER);
+        router.push('/dashboard');
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+      try {
+        const { data } = await api.post<LoginResponse>('/api/auth/login', { email, password });
+        localStorage.setItem('voyager_token', data.token);
+        localStorage.setItem('voyager_user', JSON.stringify(data.user));
+        setUser(data.user);
+        router.push('/dashboard');
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'Login failed';
+        setError(msg);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [router]
+  );
+
+  const logout = useCallback(() => {
+    localStorage.removeItem('voyager_token');
+    localStorage.removeItem('voyager_user');
+    setUser(null);
+    router.push('/login');
+  }, [router]);
+
+  const isAuthenticated = !!user;
+
+  return { user, loading, error, login, logout, isAuthenticated };
+}
+</file>
+
+<file path="frontend/src/hooks/useSimulation.ts">
+'use client';
+import { useState, useCallback } from 'react';
+import api from '@/lib/api';
+import { SimulationState } from '@/types';
+
+export function useSimulation(shipmentId: string) {
+  const [state, setState] = useState<SimulationState | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchCurrentState = useCallback(async () => {
+    if (!shipmentId) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const { data } = await api.get<SimulationState>(`/api/simulation/${shipmentId}/current-state`);
+      setState(data);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch simulation state');
+    } finally {
+      setLoading(false);
+    }
+  }, [shipmentId]);
+
+  const advance = useCallback(async (days = 1) => {
+    setLoading(true);
+    setError(null);
+    try {
+      await api.post(`/api/simulation/${shipmentId}/advance`, { days });
+      await fetchCurrentState();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to advance simulation');
+    } finally {
+      setLoading(false);
+    }
+  }, [shipmentId, fetchCurrentState]);
+
+  const reset = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      await api.post(`/api/simulation/${shipmentId}/reset`);
+      await fetchCurrentState();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to reset simulation');
+    } finally {
+      setLoading(false);
+    }
+  }, [shipmentId, fetchCurrentState]);
+
+  return { state, loading, error, fetchCurrentState, advance, reset };
+}
+</file>
+
+<file path="frontend/src/hooks/useWebSocket.ts">
+'use client';
+import { useEffect, useRef, useState, useCallback } from 'react';
+import { WSMessage } from '@/types';
+
+export function useWebSocket(enabled = true) {
+  const wsRef = useRef<WebSocket | null>(null);
+  const [connected, setConnected] = useState(false);
+  const [lastMessage, setLastMessage] = useState<WSMessage | null>(null);
+
+  const connect = useCallback(() => {
+    if (typeof window === 'undefined' || !enabled) return;
+    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:3001';
+    const token = localStorage.getItem('voyager_token');
+    const url = token ? `${wsUrl}?token=${token}` : wsUrl;
+
+    const ws = new WebSocket(url);
+    wsRef.current = ws;
+
+    ws.onopen = () => setConnected(true);
+    ws.onclose = () => {
+      setConnected(false);
+      // Reconnect after 3s
+      setTimeout(connect, 3000);
+    };
+    ws.onerror = () => setConnected(false);
+    ws.onmessage = (event) => {
+      try {
+        const msg: WSMessage = JSON.parse(event.data);
+        setLastMessage(msg);
+      } catch {
+        // ignore parse errors
+      }
+    };
+  }, [enabled]);
+
+  useEffect(() => {
+    connect();
+    return () => {
+      wsRef.current?.close();
+    };
+  }, [connect]);
+
+  const send = useCallback((type: string, payload?: unknown) => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ type, payload }));
+    }
+  }, []);
+
+  return { connected, lastMessage, send };
+}
+</file>
+
+<file path="frontend/src/lib/api.ts">
+import axios from 'axios';
+
+const api = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001',
+  headers: { 'Content-Type': 'application/json' },
+});
+
+api.interceptors.request.use((config) => {
+  if (typeof window !== 'undefined') {
+    const token = localStorage.getItem('voyager_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  }
+  return config;
+});
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401 && typeof window !== 'undefined') {
+      // In bypass mode the token is fake and the backend will reject it.
+      // Only redirect to /login when we're NOT in bypass mode (i.e. a real
+      // session expired).  Check for the bypass sentinel value in the token.
+      const token = localStorage.getItem('voyager_token') ?? '';
+      const isBypassToken = token.endsWith('.bypass');
+
+      if (!isBypassToken) {
+        localStorage.removeItem('voyager_token');
+        localStorage.removeItem('voyager_user');
+        window.location.href = '/login';
+      }
+      // In bypass mode: swallow the 401, return empty data so components
+      // render gracefully with empty state rather than crashing.
+    }
+    return Promise.reject(error);
+  }
+);
+
+export default api;
+</file>
+
+<file path="frontend/src/lib/constants.ts">
+export const COLORS = {
+  bg: '#0a0e27',
+  surface: '#1a1f3a',
+  accentPrimary: '#00d4ff',
+  accentSecondary: '#ff006e',
+  success: '#00ff41',
+  warning: '#ffd60a',
+  danger: '#ff006e',
+  textPrimary: '#e0e0ff',
+  textSecondary: '#a0a0c0',
+  border: '#2a3555',
+} as const;
+
+export const STATUS_COLORS: Record<string, string> = {
+  PLANNED: '#a0a0c0',
+  IN_TRANSIT: '#00d4ff',
+  DELAYED: '#ffd60a',
+  AT_PORT: '#00ff41',
+  DELIVERED: '#00ff41',
+  CANCELLED: '#ff006e',
+};
+
+export const SEVERITY_COLORS: Record<string, string> = {
+  LOW: '#00ff41',
+  MEDIUM: '#ffd60a',
+  HIGH: '#ff7700',
+  CRITICAL: '#ff006e',
+};
+
+export const API_ENDPOINTS = {
+  auth: {
+    login: '/api/auth/login',
+    register: '/api/auth/register',
+    me: '/api/auth/me',
+  },
+  shipments: '/api/shipments',
+  ports: '/api/ports',
+  disruptions: '/api/disruptions',
+  recommendations: '/api/recommendations',
+  captainReports: '/api/captain-reports',
+  simulation: '/api/simulation',
+} as const;
+</file>
+
+<file path="frontend/src/types/index.ts">
+export interface Port {
+  id: string;
+  name: string;
+  country: string;
+  lat: number;
+  lng: number;
+  timezone: string;
+  congestion_level?: number;
+}
+
+export interface User {
+  id: string;
+  email: string;
+  role: 'CAPTAIN' | 'BUYER' | 'SELLER' | 'ADMIN';
+  first_name?: string;
+  last_name?: string;
+  company_name?: string;
+  home_port_id?: string;
+  created_at?: string;
+}
+
+export interface Vessel {
+  id: string;
+  imo: string;
+  name: string;
+  vessel_type: string;
+  capacity_teu?: number;
+  max_speed_knots?: number;
+  fuel_consumption_per_hour?: number;
+  current_captain_id?: string;
+  current_fuel_percent?: number;
+  engine_status?: string;
+}
+
+export type ShipmentStatus = 'PLANNED' | 'IN_TRANSIT' | 'DELAYED' | 'AT_PORT' | 'DELIVERED' | 'CANCELLED';
+
+export interface Shipment {
+  id: string;
+  shipment_id_display: string;
+  seller_id: string;
+  buyer_id: string;
+  vessel_id: string;
+  origin_port_id: string;
+  destination_port_id: string;
+  cargo_type?: string;
+  cargo_weight_tons?: number;
+  cargo_containers?: number;
+  cargo_value_usd?: number;
+  departure_date: string;
+  scheduled_arrival: string;
+  current_eta?: string;
+  sla_deadline?: string;
+  sla_penalty_per_day_usd?: number;
+  status: ShipmentStatus;
+  current_lat?: number;
+  current_lng?: number;
+  current_speed_knots?: number;
+  current_port_id?: string;
+  progress_percent: number;
+  simulation_day: number;
+  // Joined fields
+  origin_port_name?: string;
+  destination_port_name?: string;
+  vessel_name?: string;
+  vessel_imo?: string;
+  vessel_type?: string;
+  buyer_first_name?: string;
+  buyer_last_name?: string;
+  buyer_company?: string;
+  seller_first_name?: string;
+  seller_last_name?: string;
+  seller_company?: string;
+  origin_lat?: number;
+  origin_lng?: number;
+  destination_lat?: number;
+  destination_lng?: number;
+}
+
+export type DisruptionType = 'WEATHER' | 'GEOPOLITICAL' | 'MECHANICAL_FAILURE' | 'FUEL_LOW' | 'SPEED_ANOMALY' | 'CREW_EMERGENCY' | 'OPERATIONAL';
+export type Severity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+export type DisruptionStatus = 'OPEN' | 'INVESTIGATING' | 'RESOLVED' | 'DISMISSED';
+
+export interface Disruption {
+  id: string;
+  disruption_id_display: string;
+  shipment_id: string;
+  shipment_id_display?: string;
+  type: DisruptionType;
+  severity: Severity;
+  title: string;
+  description?: string;
+  source?: string;
+  estimated_delay_hours?: number;
+  cost_impact_usd?: number;
+  risk_reduction_percent?: number;
+  detected_at: string;
+  resolved_at?: string;
+  status: DisruptionStatus;
+  created_at?: string;
+}
+
+export type RecommendationType = 'ROUTE_DIVERSION' | 'SPEED_ADJUSTMENT' | 'PORT_CALL' | 'HOLD' | 'OTHER';
+export type RecommendationStatus = 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED' | 'AUTO_EXECUTED';
+
+export interface Recommendation {
+  id: string;
+  recommendation_id_display: string;
+  shipment_id: string;
+  disruption_id?: string;
+  type: RecommendationType;
+  description?: string;
+  extra_distance_nm?: number;
+  time_delta_days?: number;
+  cost_delta_usd?: number;
+  risk_reduction_percent?: number;
+  alternative_route_waypoints?: string;
+  status: RecommendationStatus;
+  approved_by_user_id?: string;
+  approved_at?: string;
+  gemini_analysis?: string;
+  created_at?: string;
+}
+
+export interface CaptainReport {
+  id: string;
+  report_id_display: string;
+  shipment_id: string;
+  vessel_id: string;
+  captain_id: string;
+  report_type?: string;
+  severity?: Severity;
+  title: string;
+  description?: string;
+  current_lat?: number;
+  current_lng?: number;
+  fuel_remaining_percent?: number;
+  current_speed_knots?: number;
+  estimated_repair_hours?: number;
+  can_continue_under_power?: boolean;
+  requires_tow?: boolean;
+  speed_capability_knots?: number;
+  status?: string;
+  actions_taken?: string[];
+  reported_at?: string;
+  // Joined
+  vessel_name?: string;
+  vessel_imo?: string;
+  captain_first_name?: string;
+  captain_last_name?: string;
+  shipment_id_display?: string;
+}
+
+export interface SimulationState {
+  shipment: Shipment;
+  disruptions: Disruption[];
+  recommendations: Recommendation[];
+}
+
+export interface TimelinePoint {
+  id: string;
+  shipment_id: string;
+  simulation_day: number;
+  lat: number;
+  lng: number;
+  speed_knots?: number;
+  current_port_id?: string;
+  status?: string;
+  port_name?: string;
+}
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  role: 'CAPTAIN' | 'BUYER' | 'SELLER' | 'ADMIN';
+  first_name?: string;
+  last_name?: string;
+  company_name?: string;
+}
+
+export interface LoginResponse {
+  token: string;
+  user: AuthUser;
+}
+
+export interface WSMessage {
+  type: string;
+  payload?: unknown;
+}
+</file>
+
+<file path="frontend/tailwind.config.ts">
+import type { Config } from 'tailwindcss';
+
+const config: Config = {
+  content: [
+    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/components/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/app/**/*.{js,ts,jsx,tsx,mdx}',
+  ],
+  theme: {
+    extend: {
+      colors: {
+        bg: '#0a0e27',
+        surface: '#1a1f3a',
+        'accent-primary': '#00d4ff',
+        'accent-secondary': '#ff006e',
+        success: '#00ff41',
+        warning: '#ffd60a',
+        danger: '#ff006e',
+        'text-primary': '#e0e0ff',
+        'text-secondary': '#a0a0c0',
+        border: '#2a3555',
+      },
+      fontFamily: {
+        sans: ['Inter', 'sans-serif'],
+        mono: ['JetBrains Mono', 'monospace'],
+      },
+      backgroundImage: {
+        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+      },
+    },
+  },
+  plugins: [],
+};
+
+export default config;
+</file>
+
+<file path="frontend/next-env.d.ts">
+/// <reference types="next" />
+/// <reference types="next/image-types/global" />
+/// <reference path="./.next/types/routes.d.ts" />
+
+// NOTE: This file should not be edited
+// see https://nextjs.org/docs/app/api-reference/config/typescript for more information.
+</file>
+
+<file path="frontend/package.json">
+{
+  "name": "voyager-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@tanstack/react-table": "^8.17.3",
+    "axios": "^1.7.2",
+    "date-fns": "^3.6.0",
+    "framer-motion": "^11.2.10",
+    "lucide-react": "^0.400.0",
+    "mapbox-gl": "^3.3.0",
+    "next": "15.5.15",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/mapbox-gl": "^3.1.0",
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.5.10",
+    "tailwindcss": "^3.4.4",
+    "typescript": "^5"
+  },
+  "overrides": {
+    "postcss": "^8.5.10"
+  }
+}
+</file>
+
+<file path="frontend/tsconfig.json">
+{
+  "compilerOptions": {
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ]
+    },
+    "target": "ES2017"
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}
+</file>
+
+<file path="README.md">
+# Voyagers Tribute — Maritime Supply Chain Intelligence Platform
+
+> Google Solution Challenge 2026
+
+A real-time maritime supply chain intelligence platform that tracks global shipments, detects disruptions, and provides AI-powered recommendations powered by Google Gemini 2.0 Flash.
+
+## 🚀 Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Frontend | Next.js 14 · React 18 · TypeScript · Tailwind CSS · Framer Motion |
+| Backend | Node.js · Express · TypeScript · WebSocket |
+| Database | PostgreSQL 16 |
+| Maps | Mapbox GL JS |
+| AI | Google Gemini 2.0 Flash |
+| Auth | JWT · bcrypt |
+
+## 🎨 Design
+
+Dark neon theme with cyan (#00d4ff) and magenta (#ff006e) accents on a deep navy background (#0a0e27).
+
+## 📁 Project Structure
+
+```
+├── backend/          Express + TypeScript API (port 3001)
+│   ├── src/
+│   │   ├── controllers/   (auth, shipments, disruptions, recommendations, simulation)
+│   │   ├── services/      (Gemini AI, simulation engine)
+│   │   ├── routes/
+│   │   ├── middleware/    (JWT auth, error handler)
+│   │   └── websocket/     (real-time updates)
+│   ├── migrations/   (PostgreSQL schema)
+│   └── seeds/        (mock data: 10 ports, 11 users, 3 vessels, 3 shipments)
+├── frontend/         Next.js 14 App Router (port 3000)
+│   └── src/
+│       ├── app/      (login, dashboard, shipments, captain report)
+│       ├── components/
+│       └── hooks/    (useAuth, useWebSocket, useSimulation)
+└── docker-compose.yml  (PostgreSQL)
+```
+
+## ⚡ Quick Start
+
+### 1. Start the database
+```bash
+docker-compose up -d
+```
+
+### 2. Configure environment
+```bash
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env.local
+# Edit both files with your API keys
+```
+
+### 3. Backend
+```bash
+cd backend
+npm install
+npm run seed     # Load demo data
+npm run dev      # Starts on :3001
+```
+
+### 4. Frontend
+```bash
+cd frontend
+npm install
+npm run dev      # Starts on :3000
+```
+
+## 🔑 Demo Credentials (all use `password123`)
+
+| Role | Email |
+|------|-------|
+| Buyer | import@globaltrade.com |
+| Seller | export@shanghaiexports.com |
+| Captain | capt.zhang@vessel1.com |
+
+## 🗂 API Endpoints
+
+- `POST /api/auth/login` — Login
+- `GET  /api/shipments` — List shipments
+- `GET  /api/shipments/:id` — Shipment detail
+- `GET  /api/disruptions?shipment_id=` — Disruptions
+- `GET  /api/recommendations?shipment_id=` — AI Recommendations
+- `PUT  /api/recommendations/:id/approve` — Approve recommendation
+- `POST /api/captain-reports` — Submit captain report (triggers Gemini)
+- `POST /api/simulation/:id/advance` — Advance simulation
+- `GET  /api/ports` — All 10 global ports
+- `WS   ws://localhost:3001?token=JWT` — Real-time updates
+
+## 🌍 Global Ports
+
+Shanghai · Rotterdam · Singapore · Dubai · Los Angeles · Hamburg · Hong Kong · Port Said · Mumbai · Sydney
+
+## 📊 Demo Shipments
+
+| ID | Route | Status |
+|----|-------|--------|
+| SHIP-2026-001 | Shanghai → Rotterdam | IN_TRANSIT (60%) |
+| SHIP-2026-002 | Dubai → Los Angeles | DELAYED (30%) |
+| SHIP-2026-003 | Singapore → Hong Kong | DELIVERED (100%) |
+Maritime Supply Chain Intelligence Platform : Real-time maritime visibility. Global shipments, unified control.
+</file>
+
+</files>

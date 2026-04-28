@@ -1,10 +1,7 @@
-import type { Metadata } from 'next';
-import './globals.css';
+'use client';
 
-export const metadata: Metadata = {
-  title: 'Voyagers Tribute - Maritime Supply Chain Intelligence',
-  description: 'Maritime Supply Chain Intelligence Platform for Google Solution Challenge 2026',
-};
+// @ts-expect-error CSS import for global styles
+import './globals.css';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
