@@ -6,9 +6,18 @@ import { AuthUser, LoginResponse } from '@/types';
 
 // ─── DEMO BYPASS ──────────────────────────────────────────────────────────────
 // Set NEXT_PUBLIC_BYPASS_AUTH=false in .env.local to disable demo mode.
-// When enabled (default), skips backend authentication for MVP demos.
-// The fake user is stored under the same keys the rest of the app expects.
-const BYPASS_AUTH = process.env.NEXT_PUBLIC_BYPASS_AUTH !== 'false';
+// When enabled, skips backend authentication for MVP demos.
+const BYPASS_STORAGE_KEY = 'voyager_auth_mode';
+
+function parseBooleanEnv(value: string | undefined): boolean {
+  if (!value) return true; // keep current default behavior: enabled unless explicitly false
+  const normalized = value.trim().toLowerCase();
+  if (normalized === 'false' || normalized === '0' || normalized === 'no') return false;
+  if (normalized === 'true' || normalized === '1' || normalized === 'yes') return true;
+  return true;
+}
+
+const BYPASS_AUTH = parseBooleanEnv(process.env.NEXT_PUBLIC_BYPASS_AUTH);
 
 const FAKE_USER: AuthUser = {
   id: '00000000-0000-0000-0000-000000000001',
@@ -29,9 +38,17 @@ const FAKE_TOKEN =
 
 function ensureBypassSession() {
   if (typeof window === 'undefined') return;
-  if (!localStorage.getItem('voyager_user')) {
-    localStorage.setItem('voyager_token', FAKE_TOKEN);
-    localStorage.setItem('voyager_user', JSON.stringify(FAKE_USER));
+  localStorage.setItem('voyager_token', FAKE_TOKEN);
+  localStorage.setItem('voyager_user', JSON.stringify(FAKE_USER));
+  localStorage.setItem(BYPASS_STORAGE_KEY, 'enabled');
+}
+
+function clearBypassSessionIfPresent() {
+  if (typeof window === 'undefined') return;
+  if (localStorage.getItem(BYPASS_STORAGE_KEY) === 'enabled') {
+    localStorage.removeItem('voyager_token');
+    localStorage.removeItem('voyager_user');
+    localStorage.removeItem(BYPASS_STORAGE_KEY);
   }
 }
 // ──────────────────────────────────────────────────────────────────────────────
@@ -49,6 +66,8 @@ export function useAuth() {
   useEffect(() => {
     if (BYPASS_AUTH) {
       ensureBypassSession();
+    } else {
+      clearBypassSessionIfPresent();
     }
 
     const stored = localStorage.getItem('voyager_user');
@@ -59,7 +78,7 @@ export function useAuth() {
         console.error('Failed to parse stored user:', e);
       }
     }
-    
+
     setMounted(true);
   }, []);
 
@@ -79,6 +98,7 @@ export function useAuth() {
         const { data } = await api.post<LoginResponse>('/api/auth/login', { email, password });
         localStorage.setItem('voyager_token', data.token);
         localStorage.setItem('voyager_user', JSON.stringify(data.user));
+        localStorage.removeItem(BYPASS_STORAGE_KEY);
         setUser(data.user);
         router.push('/dashboard');
       } catch (err: unknown) {
@@ -94,6 +114,7 @@ export function useAuth() {
   const logout = useCallback(() => {
     localStorage.removeItem('voyager_token');
     localStorage.removeItem('voyager_user');
+    localStorage.removeItem(BYPASS_STORAGE_KEY);
     setUser(null);
     router.push('/login');
   }, [router]);

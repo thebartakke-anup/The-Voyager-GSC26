@@ -1,6 +1,5 @@
 'use client';
 
-// @ts-expect-error CSS import for global styles
 import './globals.css';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
