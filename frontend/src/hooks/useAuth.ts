@@ -1,13 +1,14 @@
 'use client';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { AuthUser, LoginResponse } from '@/types';
 
 // ─── DEMO BYPASS ──────────────────────────────────────────────────────────────
-// Set BYPASS_AUTH=true to skip the backend entirely for MVP demos.
+// Set NEXT_PUBLIC_BYPASS_AUTH=false in .env.local to disable demo mode.
+// When enabled (default), skips backend authentication for MVP demos.
 // The fake user is stored under the same keys the rest of the app expects.
-const BYPASS_AUTH = true;
+const BYPASS_AUTH = process.env.NEXT_PUBLIC_BYPASS_AUTH !== 'false';
 
 const FAKE_USER: AuthUser = {
   id: '00000000-0000-0000-0000-000000000001',
@@ -38,19 +39,29 @@ function ensureBypassSession() {
 export function useAuth() {
   const router = useRouter();
 
-  const [user, setUser] = useState<AuthUser | null>(() => {
-    if (typeof window === 'undefined') return null;
+  // Initialize with null to avoid hydration mismatch
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
 
+  // Load from localStorage only on client after mount
+  useEffect(() => {
     if (BYPASS_AUTH) {
       ensureBypassSession();
     }
 
     const stored = localStorage.getItem('voyager_user');
-    return stored ? JSON.parse(stored) : null;
-  });
-
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+    if (stored) {
+      try {
+        setUser(JSON.parse(stored));
+      } catch (e) {
+        console.error('Failed to parse stored user:', e);
+      }
+    }
+    
+    setMounted(true);
+  }, []);
 
   const login = useCallback(
     async (email: string, password: string) => {
@@ -89,5 +100,5 @@ export function useAuth() {
 
   const isAuthenticated = !!user;
 
-  return { user, loading, error, login, logout, isAuthenticated };
+  return { user, loading, error, login, logout, isAuthenticated, mounted };
 }

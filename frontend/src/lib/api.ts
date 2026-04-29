@@ -25,13 +25,17 @@ api.interceptors.response.use(
       const token = localStorage.getItem('voyager_token') ?? '';
       const isBypassToken = token.endsWith('.bypass');
 
-      if (!isBypassToken) {
-        localStorage.removeItem('voyager_token');
-        localStorage.removeItem('voyager_user');
-        window.location.href = '/login';
+      if (isBypassToken) {
+        // Backend rejected our fake token — that's expected in bypass mode.
+        // Return a resolved response with empty data so components render
+        // gracefully with empty state rather than crashing or showing errors.
+        return Promise.resolve({ data: [] });
       }
-      // In bypass mode: swallow the 401, return empty data so components
-      // render gracefully with empty state rather than crashing.
+
+      // Real session expired — clear storage and redirect to login.
+      localStorage.removeItem('voyager_token');
+      localStorage.removeItem('voyager_user');
+      window.location.href = '/login';
     }
     return Promise.reject(error);
   }

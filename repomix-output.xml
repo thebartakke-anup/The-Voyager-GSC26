@@ -143,72 +143,6 @@ Thumbs.db
 coverage/
 </file>
 
-<file path="backend/.env.example">
-# Voyagers Tribute - Environment Variables Template
-# Copy this file to .env and fill in your actual values
-
-# ============================================
-# DATABASE
-# ============================================
-DATABASE_URL=postgresql://postgres:password@localhost:5432/voyagers_db
-
-# ============================================
-# AUTHENTICATION
-# ============================================
-# JWT Secret key - use a strong random string in production
-# Generate with: openssl rand -hex 32
-JWT_SECRET=your-super-secret-key-change-in-production-min-32-characters
-
-# ============================================
-# AI/ML SERVICES
-# ============================================
-# Google Gemini API Key - get from https://ai.google.dev
-GEMINI_API_KEY=your-gemini-api-key-here
-
-# ============================================
-# SERVER CONFIGURATION
-# ============================================
-PORT=3001
-NODE_ENV=development
-LOG_LEVEL=info
-
-# ============================================
-# FRONTEND
-# ============================================
-# URL where frontend is hosted (for CORS)
-FRONTEND_URL=http://localhost:3000
-
-# ============================================
-# WEBSOCKET
-# ============================================
-# WebSocket server URL for real-time updates
-WS_URL=ws://localhost:3001
-
-# ============================================
-# RATE LIMITING
-# ============================================
-# Time window for rate limiting in milliseconds (15 minutes = 900000)
-RATE_LIMIT_WINDOW_MS=900000
-
-# Maximum requests per window
-RATE_LIMIT_MAX_REQUESTS=500
-
-# ============================================
-# JWT CONFIGURATION
-# ============================================
-# JWT token expiry time
-JWT_EXPIRY=24h
-
-# ============================================
-# DEVELOPMENT ONLY
-# ============================================
-# Set to true to enable debug logging
-DEBUG=false
-
-# Seed database on startup (development only)
-AUTO_SEED=false
-</file>
-
 <file path="backend/migrations/001_initial_schema.sql">
 -- Voyagers Tribute Maritime Supply Chain Intelligence Platform
 -- Initial Schema Migration
@@ -432,161 +366,6 @@ pool.on('error', (err) => {
 });
 
 export default pool;
-</file>
-
-<file path="backend/src/config/env.ts">
-// backend/src/config/env.ts
-// Environment configuration with validation
-
-const requiredEnvVars = [
-  'DATABASE_URL',
-  'JWT_SECRET',
-  'GEMINI_API_KEY',
-];
-
-const missingEnvVars = requiredEnvVars.filter(
-  (envVar) => !process.env[envVar]
-);
-
-if (missingEnvVars.length > 0 && process.env.NODE_ENV === 'production') {
-  throw new Error(
-    `Missing required environment variables: ${missingEnvVars.join(', ')}`
-  );
-}
-
-export const env = {
-  DATABASE_URL: process.env.DATABASE_URL || 'postgresql://postgres:password@localhost:5432/voyagers_db',
-  JWT_SECRET: process.env.JWT_SECRET || 'dev-secret-key-change-in-production-min-32-chars',
-  GEMINI_API_KEY: process.env.GEMINI_API_KEY || '',
-  FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:3000',
-  PORT: parseInt(process.env.PORT || '3001', 10),
-  NODE_ENV: (process.env.NODE_ENV || 'development') as 'development' | 'production' | 'test',
-  WS_URL: process.env.WS_URL || 'ws://localhost:3001',
-  RATE_LIMIT_WINDOW_MS: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000', 10),
-  RATE_LIMIT_MAX_REQUESTS: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '500', 10),
-  JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '24h',
-  LOG_LEVEL: process.env.LOG_LEVEL || 'info',
-};
-
-if (process.env.NODE_ENV !== 'production') {
-  console.log(`Running in ${env.NODE_ENV} mode`);
-  console.log(`Database: ${env.DATABASE_URL.replace(/:[^:/@]+@/, ':***@')}`);
-}
-</file>
-
-<file path="backend/src/controllers/authController.ts">
-import { Request, Response } from 'express';
-import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
-import pool from '../config/database';
-import { env } from '../config/env';
-
-export const register = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { email, password, role, first_name, last_name, company_name } = req.body;
-    if (!email || !password || !role) {
-      res.status(400).json({ error: 'Email, password and role are required' });
-      return;
-    }
-    const validRoles = ['CAPTAIN', 'BUYER', 'SELLER', 'ADMIN'];
-    if (!validRoles.includes(role)) {
-      res.status(400).json({ error: 'Invalid role' });
-      return;
-    }
-    const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
-    if (existing.rows.length > 0) {
-      res.status(409).json({ error: 'Email already registered' });
-      return;
-    }
-    const password_hash = await bcrypt.hash(password, 10);
-    const result = await pool.query(
-      `INSERT INTO users (email, password_hash, role, first_name, last_name, company_name)
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, email, role, first_name, last_name, company_name`,
-      [email, password_hash, role, first_name || null, last_name || null, company_name || null]
-    );
-    const user = result.rows[0];
-    const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, env.JWT_SECRET, {
-      expiresIn: env.JWT_EXPIRES_IN,
-    } as jwt.SignOptions);
-    res.status(201).json({ token, user });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Registration failed' });
-  }
-};
-
-export const login = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { email, password } = req.body;
-    
-    console.log('🔍 Login attempt - Email:', email);
-    
-    if (!email || !password) {
-      console.log('❌ Missing email or password');
-      res.status(400).json({ error: 'Email and password are required' });
-      return;
-    }
-    
-    const result = await pool.query(
-      'SELECT id, email, password_hash, role, first_name, last_name, company_name FROM users WHERE email = $1',
-      [email]
-    );
-    
-    console.log('📊 User query result - Found:', result.rows.length, 'user(s)');
-    
-    if (result.rows.length === 0) {
-      console.log('❌ User not found for email:', email);
-      res.status(401).json({ error: 'Invalid credentials' });
-      return;
-    }
-    
-    const user = result.rows[0];
-    console.log('✅ User found:', user.email);
-    
-    const valid = await bcrypt.compare(password, user.password_hash);
-    console.log('🔐 Password validation:', valid ? 'VALID' : 'INVALID');
-    
-    if (!valid) {
-      console.log('❌ Invalid password for user:', email);
-      res.status(401).json({ error: 'Invalid credentials' });
-      return;
-    }
-    
-    console.log('✨ Generating JWT token for user:', user.id);
-    const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, env.JWT_SECRET, {
-      expiresIn: env.JWT_EXPIRES_IN,
-    } as jwt.SignOptions);
-    
-    const { password_hash: _, ...userWithoutPassword } = user;
-    console.log('🎉 Login successful for:', email);
-    res.json({ token, user: userWithoutPassword });
-  } catch (err) {
-    console.error('💥 Login error:', err);
-    res.status(500).json({ error: 'Login failed' });
-  }
-};
-
-export const me = async (req: Request & { user?: { id: string } }, res: Response): Promise<void> => {
-  try {
-    const userId = req.user?.id;
-    if (!userId) {
-      res.status(401).json({ error: 'Unauthorized' });
-      return;
-    }
-    const result = await pool.query(
-      'SELECT id, email, role, first_name, last_name, company_name, home_port_id, created_at FROM users WHERE id = $1',
-      [userId]
-    );
-    if (result.rows.length === 0) {
-      res.status(404).json({ error: 'User not found' });
-      return;
-    }
-    res.json(result.rows[0]);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to fetch user' });
-  }
-};
 </file>
 
 <file path="backend/src/controllers/captainReportController.ts">
@@ -1139,192 +918,6 @@ export const getCurrentState = async (req: Request, res: Response): Promise<void
 };
 
 export { generateTimelinePoints };
-</file>
-
-<file path="backend/src/index.ts">
-// backend/src/index.ts
-// Main application entry point
-
-import 'dotenv/config';
-import express, { Express } from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import rateLimit from 'express-rate-limit';
-import http from 'http';
-import { env } from './config/env';
-import { errorHandler } from './middleware/errorHandler';
-import { initWebSocket } from './websocket/wsHandler';
-
-// Route imports
-import authRoutes from './routes/auth';
-import shipmentRoutes from './routes/shipments';
-import portRoutes from './routes/ports';
-import disruptionRoutes from './routes/disruptions';
-import recommendationRoutes from './routes/recommendations';
-import captainReportRoutes from './routes/captainReports';
-import simulationRoutes from './routes/simulation';
-
-const app: Express = express();
-
-// ============================================
-// SECURITY MIDDLEWARE
-// ============================================
-app.use(helmet());
-app.use(
-  cors({
-    origin: env.FRONTEND_URL,
-    credentials: true,
-    optionsSuccessStatus: 200,
-  })
-);
-
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: env.RATE_LIMIT_WINDOW_MS,
-  max: env.RATE_LIMIT_MAX_REQUESTS,
-  message: 'Too many requests from this IP, please try again later.',
-});
-app.use('/api/', limiter);
-
-// ============================================
-// BODY PARSING
-// ============================================
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
-
-// ============================================
-// HEALTH CHECK ENDPOINT
-// ============================================
-app.get('/health', (_req, res) => {
-  res.json({
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    environment: env.NODE_ENV,
-  });
-});
-
-// ============================================
-// API ROUTES
-// ============================================
-const apiRouter = express.Router();
-
-// Auth
-apiRouter.use('/auth', authRoutes);
-
-// Resources
-apiRouter.use('/shipments', shipmentRoutes);
-apiRouter.use('/ports', portRoutes);
-apiRouter.use('/disruptions', disruptionRoutes);
-apiRouter.use('/recommendations', recommendationRoutes);
-apiRouter.use('/captain-reports', captainReportRoutes);
-
-// Simulation & real-time
-apiRouter.use('/simulation', simulationRoutes);
-
-// Mount all API routes under /api
-app.use('/api', apiRouter);
-
-// ============================================
-// 404 HANDLER
-// ============================================
-app.use((_req, res) => {
-  res.status(404).json({
-    error: 'Not Found',
-    message: 'The requested endpoint does not exist',
-    timestamp: new Date().toISOString(),
-  });
-});
-
-// ============================================
-// ERROR HANDLER (Must be last)
-// ============================================
-app.use(errorHandler);
-
-// ============================================
-// WEBSOCKET SERVER
-// ============================================
-const server = http.createServer(app);
-const wss = initWebSocket(server);
-
-// Log WebSocket connections
-wss.on('connection', (ws) => {
-  console.log(`[WebSocket] New connection. Total clients: ${wss.clients.size}`);
-  
-  ws.on('close', () => {
-    console.log(`[WebSocket] Client disconnected. Total clients: ${wss.clients.size}`);
-  });
-});
-
-// ============================================
-// SERVER STARTUP
-// ============================================
-const PORT = env.PORT || 3001;
-
-server.listen(PORT, () => {
-  console.log(`\n${'='.repeat(60)}`);
-  console.log('🚀 VOYAGERS TRIBUTE - Maritime Intelligence Platform');
-  console.log(`${'='.repeat(60)}`);
-  console.log(`
-📡 Server Configuration:
-   - Environment: ${env.NODE_ENV}
-   - HTTP Port: ${PORT}
-   - WebSocket: ws://localhost:${PORT}
-   - Frontend URL: ${env.FRONTEND_URL}
-   - Database: ${env.DATABASE_URL.split('@')[1] || 'configured'}
-  `);
-  console.log(`✅ Server listening on http://localhost:${PORT}`);
-  console.log(`🔗 WebSocket available at ws://localhost:${PORT}`);
-  console.log(`📊 Health check: http://localhost:${PORT}/health`);
-  console.log(`${'='.repeat(60)}\n`);
-});
-
-// ============================================
-// GRACEFUL SHUTDOWN
-// ============================================
-process.on('SIGTERM', () => {
-  console.log('\n⚠️  SIGTERM signal received: closing HTTP server');
-  
-  server.close(() => {
-    console.log('✅ HTTP server closed');
-    process.exit(0);
-  });
-
-  // Force shutdown after 10 seconds
-  setTimeout(() => {
-    console.error('❌ Forcing shutdown after timeout');
-    process.exit(1);
-  }, 10000);
-});
-
-process.on('SIGINT', () => {
-  console.log('\n⚠️  SIGINT signal received: closing HTTP server');
-  
-  server.close(() => {
-    console.log('✅ HTTP server closed');
-    process.exit(0);
-  });
-
-  // Force shutdown after 10 seconds
-  setTimeout(() => {
-    console.error('❌ Forcing shutdown after timeout');
-    process.exit(1);
-  }, 10000);
-});
-
-// ============================================
-// UNHANDLED ERROR HANDLERS
-// ============================================
-process.on('uncaughtException', (error) => {
-  console.error('❌ Uncaught Exception:', error);
-  process.exit(1);
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
-  process.exit(1);
-});
-
-export default app;
 </file>
 
 <file path="backend/src/middleware/auth.ts">
@@ -2154,238 +1747,6 @@ export default function CaptainPage() {
 }
 </file>
 
-<file path="frontend/src/app/dashboard/page.tsx">
-'use client';
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
-import Link from 'next/link';
-import { useAuth } from '@/hooks/useAuth';
-import api from '@/lib/api';
-import { Shipment, Disruption } from '@/types';
-import StatusBadge from '@/components/ui/StatusBadge';
-import dynamic from 'next/dynamic';
-
-const WorldMap = dynamic(() => import('@/components/map/WorldMap'), { ssr: false });
-
-export default function DashboardPage() {
-  const { user, logout, isAuthenticated } = useAuth();
-  const router = useRouter();
-  const [shipments, setShipments] = useState<Shipment[]>([]);
-  const [disruptions, setDisruptions] = useState<Disruption[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [apiError, setApiError] = useState(false);
-
-  useEffect(() => {
-    if (!isAuthenticated) {
-      router.push('/login');
-      return;
-    }
-
-    const fetchData = async () => {
-      setLoading(true);
-      setApiError(false);
-      try {
-        const [shipmentsRes, disruptionsRes] = await Promise.all([
-          api.get<Shipment[]>('/api/shipments'),
-          api.get<Disruption[]>('/api/disruptions'),
-        ]);
-        setShipments(shipmentsRes.data);
-        setDisruptions(disruptionsRes.data);
-      } catch (err) {
-        console.warn('[Dashboard] API unavailable — rendering with empty data.', err);
-        setApiError(true);
-        // Keep empty arrays; the UI will show placeholder states.
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [isAuthenticated, router]);
-
-  const stats = {
-    total: shipments.length,
-    inTransit: shipments.filter((s) => s.status === 'IN_TRANSIT').length,
-    delayed: shipments.filter((s) => s.status === 'DELAYED').length,
-    delivered: shipments.filter((s) => s.status === 'DELIVERED').length,
-    activeDisruptions: disruptions.filter(
-      (d) => d.status !== 'RESOLVED' && d.status !== 'DISMISSED'
-    ).length,
-  };
-
-  if (!isAuthenticated) return null;
-
-  return (
-    <div className="min-h-screen bg-bg flex flex-col">
-      {/* Navbar */}
-      <nav className="bg-surface border-b border-border px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <span className="text-2xl">🚢</span>
-          <span className="text-text-primary font-bold text-lg">Voyagers Tribute</span>
-        </div>
-        <div className="flex items-center gap-6">
-          <Link href="/dashboard" className="text-accent-primary text-sm font-medium">
-            Dashboard
-          </Link>
-          <Link href="/shipments" className="text-text-secondary hover:text-text-primary text-sm">
-            Shipments
-          </Link>
-          {user?.role === 'CAPTAIN' && (
-            <Link href="/captain" className="text-text-secondary hover:text-text-primary text-sm">
-              Report
-            </Link>
-          )}
-          <div className="flex items-center gap-2">
-            <span className="text-text-secondary text-sm">{user?.first_name || user?.email}</span>
-            <button onClick={logout} className="text-xs text-danger hover:text-danger/80">
-              Logout
-            </button>
-          </div>
-        </div>
-      </nav>
-
-      <main className="flex-1 p-6 space-y-6">
-        {/* Backend offline banner */}
-        {apiError && (
-          <div className="rounded-lg border border-warning/30 bg-warning/10 px-4 py-3 text-warning text-sm flex items-center gap-2">
-            <span>⚠️</span>
-            <span>
-              Backend unreachable — displaying demo shell. Start the backend and refresh to load
-              live data.
-            </span>
-          </div>
-        )}
-
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          {[
-            { label: 'Total Shipments', value: stats.total, color: 'text-text-primary' },
-            { label: 'In Transit', value: stats.inTransit, color: 'text-accent-primary' },
-            { label: 'Delayed', value: stats.delayed, color: 'text-warning' },
-            { label: 'Delivered', value: stats.delivered, color: 'text-success' },
-            { label: 'Active Disruptions', value: stats.activeDisruptions, color: 'text-danger' },
-          ].map((stat) => (
-            <motion.div
-              key={stat.label}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="glass-card rounded-xl p-4"
-            >
-              <p className="text-text-secondary text-xs mb-1">{stat.label}</p>
-              <p className={`text-3xl font-bold ${stat.color}`}>
-                {loading ? '—' : stat.value}
-              </p>
-            </motion.div>
-          ))}
-        </div>
-
-        {/* Map */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2 }}
-          className="glass-card rounded-xl overflow-hidden"
-          style={{ height: 420 }}
-        >
-          <div className="px-4 py-3 border-b border-border flex items-center gap-2">
-            <span className="text-accent-primary text-sm font-medium">🌍 Live Fleet Map</span>
-          </div>
-          {/* Render map shell even while loading; WorldMap handles empty shipments gracefully */}
-          <WorldMap shipments={shipments} />
-        </motion.div>
-
-        {/* Shipments & Disruptions */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Recent Shipments */}
-          <div className="glass-card rounded-xl p-4">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-text-primary font-semibold">Recent Shipments</h2>
-              <Link href="/shipments" className="text-accent-primary text-xs hover:underline">
-                View all →
-              </Link>
-            </div>
-            {loading ? (
-              <div className="text-text-secondary text-sm text-center py-8">Loading…</div>
-            ) : shipments.length === 0 ? (
-              <div className="text-text-secondary text-sm text-center py-8 space-y-1">
-                <p>No shipments found</p>
-                {apiError && (
-                  <p className="text-xs opacity-60">
-                    Run <code className="bg-surface px-1 rounded">npm run seed</code> in the
-                    backend to load demo data
-                  </p>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {shipments.slice(0, 5).map((s) => (
-                  <Link key={s.id} href={`/shipments/${s.shipment_id_display}`}>
-                    <div className="flex items-center justify-between p-3 rounded-lg bg-bg hover:bg-surface/50 transition-colors cursor-pointer border border-border/50">
-                      <div>
-                        <p className="text-text-primary text-sm font-medium">
-                          {s.shipment_id_display}
-                        </p>
-                        <p className="text-text-secondary text-xs">
-                          {s.origin_port_name} → {s.destination_port_name}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <StatusBadge status={s.status} />
-                        <p className="text-text-secondary text-xs mt-1">{s.progress_percent}%</p>
-                      </div>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Active Disruptions */}
-          <div className="glass-card rounded-xl p-4">
-            <h2 className="text-text-primary font-semibold mb-4">Active Disruptions</h2>
-            {loading ? (
-              <div className="text-text-secondary text-sm text-center py-8">Loading…</div>
-            ) : disruptions.filter((d) => d.status !== 'RESOLVED').length === 0 ? (
-              <div className="text-success text-sm text-center py-8">✓ No active disruptions</div>
-            ) : (
-              <div className="space-y-3">
-                {disruptions
-                  .filter((d) => d.status !== 'RESOLVED')
-                  .slice(0, 5)
-                  .map((d) => (
-                    <div key={d.id} className="p-3 rounded-lg bg-bg border border-border/50">
-                      <div className="flex items-center justify-between">
-                        <p className="text-text-primary text-sm font-medium">{d.title}</p>
-                        <span
-                          className={`text-xs px-2 py-0.5 rounded-full ${
-                            d.severity === 'CRITICAL'
-                              ? 'bg-danger/20 text-danger'
-                              : d.severity === 'HIGH'
-                              ? 'bg-orange-500/20 text-orange-400'
-                              : d.severity === 'MEDIUM'
-                              ? 'bg-warning/20 text-warning'
-                              : 'bg-success/20 text-success'
-                          }`}
-                        >
-                          {d.severity}
-                        </span>
-                      </div>
-                      <p className="text-text-secondary text-xs mt-1">
-                        {d.type} · {d.status}
-                      </p>
-                    </div>
-                  ))}
-              </div>
-            )}
-          </div>
-        </div>
-      </main>
-    </div>
-  );
-}
-</file>
-
 <file path="frontend/src/app/globals.css">
 @tailwind base;
 @tailwind components;
@@ -2457,23 +1818,6 @@ body {
   background: rgba(26, 31, 58, 0.8);
   backdrop-filter: blur(12px);
   border: 1px solid var(--border);
-}
-</file>
-
-<file path="frontend/src/app/layout.tsx">
-'use client';
-
-// @ts-expect-error CSS import for global styles
-import './globals.css';
-
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <html lang="en">
-      <body className="bg-bg text-text-primary min-h-screen">
-        {children}
-      </body>
-    </html>
-  );
 }
 </file>
 
@@ -3326,102 +2670,6 @@ export default function StatusBadge({ status }: StatusBadgeProps) {
 }
 </file>
 
-<file path="frontend/src/hooks/useAuth.ts">
-'use client';
-import { useState, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
-import api from '@/lib/api';
-import { AuthUser, LoginResponse } from '@/types';
-
-// ─── DEMO BYPASS ──────────────────────────────────────────────────────────────
-// Set BYPASS_AUTH=true to skip the backend entirely for MVP demos.
-// The fake user is stored under the same keys the rest of the app expects.
-const BYPASS_AUTH = true;
-
-const FAKE_USER: AuthUser = {
-  id: '00000000-0000-0000-0000-000000000001',
-  email: 'import@globaltrade.com',
-  role: 'BUYER',
-  first_name: 'Demo',
-  last_name: 'User',
-  company_name: 'Global Trade Inc.',
-};
-
-// A JWT whose payload matches FAKE_USER (signature is intentionally invalid —
-// only used to satisfy the axios interceptor header; the backend is not called
-// in bypass mode).
-const FAKE_TOKEN =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9' +
-  '.eyJpZCI6IjAwMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAwMSIsImVtYWlsIjoiaW1wb3J0QGdsb2JhbHRyYWRlLmNvbSIsInJvbGUiOiJCVVlFUiJ9' +
-  '.bypass';
-
-function ensureBypassSession() {
-  if (typeof window === 'undefined') return;
-  if (!localStorage.getItem('voyager_user')) {
-    localStorage.setItem('voyager_token', FAKE_TOKEN);
-    localStorage.setItem('voyager_user', JSON.stringify(FAKE_USER));
-  }
-}
-// ──────────────────────────────────────────────────────────────────────────────
-
-export function useAuth() {
-  const router = useRouter();
-
-  const [user, setUser] = useState<AuthUser | null>(() => {
-    if (typeof window === 'undefined') return null;
-
-    if (BYPASS_AUTH) {
-      ensureBypassSession();
-    }
-
-    const stored = localStorage.getItem('voyager_user');
-    return stored ? JSON.parse(stored) : null;
-  });
-
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const login = useCallback(
-    async (email: string, password: string) => {
-      if (BYPASS_AUTH) {
-        // In bypass mode just accept any credentials and go straight to dashboard
-        ensureBypassSession();
-        setUser(FAKE_USER);
-        router.push('/dashboard');
-        return;
-      }
-
-      setLoading(true);
-      setError(null);
-      try {
-        const { data } = await api.post<LoginResponse>('/api/auth/login', { email, password });
-        localStorage.setItem('voyager_token', data.token);
-        localStorage.setItem('voyager_user', JSON.stringify(data.user));
-        setUser(data.user);
-        router.push('/dashboard');
-      } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : 'Login failed';
-        setError(msg);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [router]
-  );
-
-  const logout = useCallback(() => {
-    localStorage.removeItem('voyager_token');
-    localStorage.removeItem('voyager_user');
-    setUser(null);
-    router.push('/login');
-  }, [router]);
-
-  const isAuthenticated = !!user;
-
-  return { user, loading, error, login, logout, isAuthenticated };
-}
-</file>
-
 <file path="frontend/src/hooks/useSimulation.ts">
 'use client';
 import { useState, useCallback } from 'react';
@@ -3528,49 +2776,6 @@ export function useWebSocket(enabled = true) {
 
   return { connected, lastMessage, send };
 }
-</file>
-
-<file path="frontend/src/lib/api.ts">
-import axios from 'axios';
-
-const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001',
-  headers: { 'Content-Type': 'application/json' },
-});
-
-api.interceptors.request.use((config) => {
-  if (typeof window !== 'undefined') {
-    const token = localStorage.getItem('voyager_token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-  }
-  return config;
-});
-
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401 && typeof window !== 'undefined') {
-      // In bypass mode the token is fake and the backend will reject it.
-      // Only redirect to /login when we're NOT in bypass mode (i.e. a real
-      // session expired).  Check for the bypass sentinel value in the token.
-      const token = localStorage.getItem('voyager_token') ?? '';
-      const isBypassToken = token.endsWith('.bypass');
-
-      if (!isBypassToken) {
-        localStorage.removeItem('voyager_token');
-        localStorage.removeItem('voyager_user');
-        window.location.href = '/login';
-      }
-      // In bypass mode: swallow the 401, return empty data so components
-      // render gracefully with empty state rather than crashing.
-    }
-    return Promise.reject(error);
-  }
-);
-
-export default api;
 </file>
 
 <file path="frontend/src/lib/constants.ts">
@@ -3847,6 +3052,413 @@ const config: Config = {
 export default config;
 </file>
 
+<file path="backend/.env.example">
+# Voyagers Tribute - Environment Variables Template
+# Copy this file to .env and fill in your actual values
+
+# ============================================
+# DATABASE
+# ============================================
+DATABASE_URL=postgresql://postgres:password@localhost:5432/voyagers_db
+
+# ============================================
+# AUTHENTICATION
+# ============================================
+# JWT Secret key - use a strong random string in production
+# Generate with: openssl rand -hex 32
+JWT_SECRET=your-super-secret-key-change-in-production-min-32-characters
+
+# ============================================
+# AI/ML SERVICES
+# ============================================
+# Google Gemini API Key - get from https://ai.google.dev
+GEMINI_API_KEY=your-gemini-api-key-here
+
+# ============================================
+# SERVER CONFIGURATION
+# ============================================
+PORT=3001
+NODE_ENV=development
+LOG_LEVEL=info
+
+# ============================================
+# FRONTEND
+# ============================================
+# URL where frontend is hosted (for CORS)
+FRONTEND_URL=http://localhost:3000
+
+# ============================================
+# WEBSOCKET
+# ============================================
+# WebSocket server URL for real-time updates
+WS_URL=ws://localhost:3001
+
+# ============================================
+# RATE LIMITING
+# ============================================
+# Time window for rate limiting in milliseconds (15 minutes = 900000)
+RATE_LIMIT_WINDOW_MS=900000
+
+# Maximum requests per window
+RATE_LIMIT_MAX_REQUESTS=500
+
+# ============================================
+# JWT CONFIGURATION
+# ============================================
+# JWT token expiry time
+JWT_EXPIRY=24h
+
+# ============================================
+# DEVELOPMENT ONLY
+# ============================================
+# Set to true to enable debug logging
+DEBUG=false
+
+# Seed database on startup (development only)
+AUTO_SEED=false
+</file>
+
+<file path="backend/src/config/env.ts">
+// backend/src/config/env.ts
+// Environment configuration with validation
+
+const requiredEnvVars = [
+  'DATABASE_URL',
+  'JWT_SECRET',
+  'GEMINI_API_KEY',
+];
+
+const missingEnvVars = requiredEnvVars.filter(
+  (envVar) => !process.env[envVar]
+);
+
+if (missingEnvVars.length > 0 && process.env.NODE_ENV === 'production') {
+  throw new Error(
+    `Missing required environment variables: ${missingEnvVars.join(', ')}`
+  );
+}
+
+export const env = {
+  DATABASE_URL: process.env.DATABASE_URL || 'postgresql://postgres:password@localhost:5432/voyagers_db',
+  JWT_SECRET: process.env.JWT_SECRET || 'dev-secret-key-change-in-production-min-32-chars',
+  GEMINI_API_KEY: process.env.GEMINI_API_KEY || '',
+  FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:3000',
+  PORT: parseInt(process.env.PORT || '3001', 10),
+  NODE_ENV: (process.env.NODE_ENV || 'development') as 'development' | 'production' | 'test',
+  WS_URL: process.env.WS_URL || 'ws://localhost:3001',
+  RATE_LIMIT_WINDOW_MS: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000', 10),
+  RATE_LIMIT_MAX_REQUESTS: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '500', 10),
+  JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '24h',
+  LOG_LEVEL: process.env.LOG_LEVEL || 'info',
+};
+
+if (process.env.NODE_ENV !== 'production') {
+  console.log(`Running in ${env.NODE_ENV} mode`);
+  console.log(`Database: ${env.DATABASE_URL.replace(/:[^:/@]+@/, ':***@')}`);
+}
+</file>
+
+<file path="backend/src/controllers/authController.ts">
+import { Request, Response } from 'express';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+import pool from '../config/database';
+import { env } from '../config/env';
+
+export const register = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { email, password, role, first_name, last_name, company_name } = req.body;
+    if (!email || !password || !role) {
+      res.status(400).json({ error: 'Email, password and role are required' });
+      return;
+    }
+    const validRoles = ['CAPTAIN', 'BUYER', 'SELLER', 'ADMIN'];
+    if (!validRoles.includes(role)) {
+      res.status(400).json({ error: 'Invalid role' });
+      return;
+    }
+    const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
+    if (existing.rows.length > 0) {
+      res.status(409).json({ error: 'Email already registered' });
+      return;
+    }
+    const password_hash = await bcrypt.hash(password, 10);
+    const result = await pool.query(
+      `INSERT INTO users (email, password_hash, role, first_name, last_name, company_name)
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, email, role, first_name, last_name, company_name`,
+      [email, password_hash, role, first_name || null, last_name || null, company_name || null]
+    );
+    const user = result.rows[0];
+    const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, env.JWT_SECRET, {
+      expiresIn: env.JWT_EXPIRES_IN,
+    } as jwt.SignOptions);
+    res.status(201).json({ token, user });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Registration failed' });
+  }
+};
+
+export const login = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { email, password } = req.body;
+    
+    console.log('🔍 Login attempt - Email:', email);
+    
+    if (!email || !password) {
+      console.log('❌ Missing email or password');
+      res.status(400).json({ error: 'Email and password are required' });
+      return;
+    }
+    
+    const result = await pool.query(
+      'SELECT id, email, password_hash, role, first_name, last_name, company_name FROM users WHERE email = $1',
+      [email]
+    );
+    
+    console.log('📊 User query result - Found:', result.rows.length, 'user(s)');
+    
+    if (result.rows.length === 0) {
+      console.log('❌ User not found for email:', email);
+      res.status(401).json({ error: 'Invalid credentials' });
+      return;
+    }
+    
+    const user = result.rows[0];
+    console.log('✅ User found:', user.email);
+    
+    const valid = await bcrypt.compare(password, user.password_hash);
+    console.log('🔐 Password validation:', valid ? 'VALID' : 'INVALID');
+    
+    if (!valid) {
+      console.log('❌ Invalid password for user:', email);
+      res.status(401).json({ error: 'Invalid credentials' });
+      return;
+    }
+    
+    console.log('✨ Generating JWT token for user:', user.id);
+    const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, env.JWT_SECRET, {
+      expiresIn: env.JWT_EXPIRES_IN,
+    } as jwt.SignOptions);
+    
+    const { password_hash: _, ...userWithoutPassword } = user;
+    console.log('🎉 Login successful for:', email);
+    res.json({ token, user: userWithoutPassword });
+  } catch (err) {
+    console.error('💥 Login error:', err);
+    res.status(500).json({ error: 'Login failed' });
+  }
+};
+
+export const me = async (req: Request & { user?: { id: string } }, res: Response): Promise<void> => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+    const result = await pool.query(
+      'SELECT id, email, role, first_name, last_name, company_name, home_port_id, created_at FROM users WHERE id = $1',
+      [userId]
+    );
+    if (result.rows.length === 0) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch user' });
+  }
+};
+</file>
+
+<file path="backend/src/index.ts">
+// backend/src/index.ts
+// Main application entry point
+
+import 'dotenv/config';
+import express, { Express } from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+import http from 'http';
+import { env } from './config/env';
+import { errorHandler } from './middleware/errorHandler';
+import { initWebSocket } from './websocket/wsHandler';
+
+// Route imports
+import authRoutes from './routes/auth';
+import shipmentRoutes from './routes/shipments';
+import portRoutes from './routes/ports';
+import disruptionRoutes from './routes/disruptions';
+import recommendationRoutes from './routes/recommendations';
+import captainReportRoutes from './routes/captainReports';
+import simulationRoutes from './routes/simulation';
+
+const app: Express = express();
+
+// ============================================
+// SECURITY MIDDLEWARE
+// ============================================
+app.use(helmet());
+app.use(
+  cors({
+    origin: env.FRONTEND_URL,
+    credentials: true,
+    optionsSuccessStatus: 200,
+  })
+);
+
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: env.RATE_LIMIT_WINDOW_MS,
+  max: env.RATE_LIMIT_MAX_REQUESTS,
+  message: 'Too many requests from this IP, please try again later.',
+});
+app.use('/api/', limiter);
+
+// ============================================
+// BODY PARSING
+// ============================================
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// ============================================
+// HEALTH CHECK ENDPOINT
+// ============================================
+app.get('/health', (_req, res) => {
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    environment: env.NODE_ENV,
+  });
+});
+
+// ============================================
+// API ROUTES
+// ============================================
+const apiRouter = express.Router();
+
+// Auth
+apiRouter.use('/auth', authRoutes);
+
+// Resources
+apiRouter.use('/shipments', shipmentRoutes);
+apiRouter.use('/ports', portRoutes);
+apiRouter.use('/disruptions', disruptionRoutes);
+apiRouter.use('/recommendations', recommendationRoutes);
+apiRouter.use('/captain-reports', captainReportRoutes);
+
+// Simulation & real-time
+apiRouter.use('/simulation', simulationRoutes);
+
+// Mount all API routes under /api
+app.use('/api', apiRouter);
+
+// ============================================
+// 404 HANDLER
+// ============================================
+app.use((_req, res) => {
+  res.status(404).json({
+    error: 'Not Found',
+    message: 'The requested endpoint does not exist',
+    timestamp: new Date().toISOString(),
+  });
+});
+
+// ============================================
+// ERROR HANDLER (Must be last)
+// ============================================
+app.use(errorHandler);
+
+// ============================================
+// WEBSOCKET SERVER
+// ============================================
+const server = http.createServer(app);
+const wss = initWebSocket(server);
+
+// Log WebSocket connections
+wss.on('connection', (ws) => {
+  console.log(`[WebSocket] New connection. Total clients: ${wss.clients.size}`);
+  
+  ws.on('close', () => {
+    console.log(`[WebSocket] Client disconnected. Total clients: ${wss.clients.size}`);
+  });
+});
+
+// ============================================
+// SERVER STARTUP
+// ============================================
+const PORT = env.PORT || 3001;
+
+server.listen(PORT, () => {
+  console.log(`\n${'='.repeat(60)}`);
+  console.log('🚀 VOYAGERS TRIBUTE - Maritime Intelligence Platform');
+  console.log(`${'='.repeat(60)}`);
+  console.log(`
+📡 Server Configuration:
+   - Environment: ${env.NODE_ENV}
+   - HTTP Port: ${PORT}
+   - WebSocket: ws://localhost:${PORT}
+   - Frontend URL: ${env.FRONTEND_URL}
+   - Database: ${env.DATABASE_URL.split('@')[1] || 'configured'}
+  `);
+  console.log(`✅ Server listening on http://localhost:${PORT}`);
+  console.log(`🔗 WebSocket available at ws://localhost:${PORT}`);
+  console.log(`📊 Health check: http://localhost:${PORT}/health`);
+  console.log(`${'='.repeat(60)}\n`);
+});
+
+// ============================================
+// GRACEFUL SHUTDOWN
+// ============================================
+process.on('SIGTERM', () => {
+  console.log('\n⚠️  SIGTERM signal received: closing HTTP server');
+  
+  server.close(() => {
+    console.log('✅ HTTP server closed');
+    process.exit(0);
+  });
+
+  // Force shutdown after 10 seconds
+  setTimeout(() => {
+    console.error('❌ Forcing shutdown after timeout');
+    process.exit(1);
+  }, 10000);
+});
+
+process.on('SIGINT', () => {
+  console.log('\n⚠️  SIGINT signal received: closing HTTP server');
+  
+  server.close(() => {
+    console.log('✅ HTTP server closed');
+    process.exit(0);
+  });
+
+  // Force shutdown after 10 seconds
+  setTimeout(() => {
+    console.error('❌ Forcing shutdown after timeout');
+    process.exit(1);
+  }, 10000);
+});
+
+// ============================================
+// UNHANDLED ERROR HANDLERS
+// ============================================
+process.on('uncaughtException', (error) => {
+  console.error('❌ Uncaught Exception:', error);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(1);
+});
+
+export default app;
+</file>
+
 <file path="frontend/next-env.d.ts">
 /// <reference types="next" />
 /// <reference types="next/image-types/global" />
@@ -3892,6 +3504,417 @@ export default config;
     "postcss": "^8.5.10"
   }
 }
+</file>
+
+<file path="frontend/src/app/dashboard/page.tsx">
+'use client';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
+import Link from 'next/link';
+import { useAuth } from '@/hooks/useAuth';
+import api from '@/lib/api';
+import { Shipment, Disruption } from '@/types';
+import StatusBadge from '@/components/ui/StatusBadge';
+import dynamic from 'next/dynamic';
+
+const WorldMap = dynamic(() => import('@/components/map/WorldMap'), { ssr: false });
+
+export default function DashboardPage() {
+  const { user, logout, isAuthenticated, mounted } = useAuth();
+  const router = useRouter();
+  const [shipments, setShipments] = useState<Shipment[]>([]);
+  const [disruptions, setDisruptions] = useState<Disruption[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [apiError, setApiError] = useState(false);
+
+  // Wait for hydration AND auth check before redirecting
+  useEffect(() => {
+    if (!mounted) return; // Still hydrating, don't redirect yet
+    
+    if (!isAuthenticated) {
+      router.push('/login');
+      return;
+    }
+
+    const fetchData = async () => {
+      setLoading(true);
+      setApiError(false);
+      try {
+        const [shipmentsRes, disruptionsRes] = await Promise.all([
+          api.get<Shipment[]>('/api/shipments'),
+          api.get<Disruption[]>('/api/disruptions'),
+        ]);
+        setShipments(shipmentsRes.data);
+        setDisruptions(disruptionsRes.data);
+      } catch (err) {
+        console.warn('[Dashboard] API unavailable — rendering with empty data.', err);
+        setApiError(true);
+        // Keep empty arrays; the UI will show placeholder states.
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [mounted, isAuthenticated, router]);
+
+  // Show nothing while hydrating
+  if (!mounted) {
+    return null;
+  }
+
+  const stats = {
+    total: shipments.length,
+    inTransit: shipments.filter((s) => s.status === 'IN_TRANSIT').length,
+    delayed: shipments.filter((s) => s.status === 'DELAYED').length,
+    delivered: shipments.filter((s) => s.status === 'DELIVERED').length,
+    activeDisruptions: disruptions.filter(
+      (d) => d.status !== 'RESOLVED' && d.status !== 'DISMISSED'
+    ).length,
+  };
+
+  if (!isAuthenticated) return null;
+
+  return (
+    <div className="min-h-screen bg-bg flex flex-col">
+      {/* Navbar */}
+      <nav className="bg-surface border-b border-border px-6 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <span className="text-2xl">🚢</span>
+          <span className="text-text-primary font-bold text-lg">Voyagers Tribute</span>
+        </div>
+        <div className="flex items-center gap-6">
+          <Link href="/dashboard" className="text-accent-primary text-sm font-medium">
+            Dashboard
+          </Link>
+          <Link href="/shipments" className="text-text-secondary hover:text-text-primary text-sm">
+            Shipments
+          </Link>
+          {user?.role === 'CAPTAIN' && (
+            <Link href="/captain" className="text-text-secondary hover:text-text-primary text-sm">
+              Report
+            </Link>
+          )}
+          <div className="flex items-center gap-2">
+            <span className="text-text-secondary text-sm">{user?.first_name || user?.email}</span>
+            <button onClick={logout} className="text-xs text-danger hover:text-danger/80">
+              Logout
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      <main className="flex-1 p-6 space-y-6">
+        {/* Backend offline banner */}
+        {apiError && (
+          <div className="rounded-lg border border-warning/30 bg-warning/10 px-4 py-3 text-warning text-sm flex items-center gap-2">
+            <span>⚠️</span>
+            <span>
+              Backend unreachable — displaying demo shell. Start the backend and refresh to load
+              live data.
+            </span>
+          </div>
+        )}
+
+        {/* Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          {[
+            { label: 'Total Shipments', value: stats.total, color: 'text-text-primary' },
+            { label: 'In Transit', value: stats.inTransit, color: 'text-accent-primary' },
+            { label: 'Delayed', value: stats.delayed, color: 'text-warning' },
+            { label: 'Delivered', value: stats.delivered, color: 'text-success' },
+            { label: 'Active Disruptions', value: stats.activeDisruptions, color: 'text-danger' },
+          ].map((stat) => (
+            <motion.div
+              key={stat.label}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="glass-card rounded-xl p-4"
+            >
+              <p className="text-text-secondary text-xs mb-1">{stat.label}</p>
+              <p className={`text-3xl font-bold ${stat.color}`}>
+                {loading ? '—' : stat.value}
+              </p>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Map */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2 }}
+          className="glass-card rounded-xl overflow-hidden"
+          style={{ height: 420 }}
+        >
+          <div className="px-4 py-3 border-b border-border flex items-center gap-2">
+            <span className="text-accent-primary text-sm font-medium">🌍 Live Fleet Map</span>
+          </div>
+          {/* Render map shell even while loading; WorldMap handles empty shipments gracefully */}
+          <WorldMap shipments={shipments} />
+        </motion.div>
+
+        {/* Shipments & Disruptions */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Recent Shipments */}
+          <div className="glass-card rounded-xl p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-text-primary font-semibold">Recent Shipments</h2>
+              <Link href="/shipments" className="text-accent-primary text-xs hover:underline">
+                View all →
+              </Link>
+            </div>
+            {loading ? (
+              <div className="text-text-secondary text-sm text-center py-8">Loading…</div>
+            ) : shipments.length === 0 ? (
+              <div className="text-text-secondary text-sm text-center py-8 space-y-1">
+                <p>No shipments found</p>
+                {apiError && (
+                  <p className="text-xs opacity-60">
+                    Run <code className="bg-surface px-1 rounded">npm run seed</code> in the
+                    backend to load demo data
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {shipments.slice(0, 5).map((s) => (
+                  <Link key={s.id} href={`/shipments/${s.shipment_id_display}`}>
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-bg hover:bg-surface/50 transition-colors cursor-pointer border border-border/50">
+                      <div>
+                        <p className="text-text-primary text-sm font-medium">
+                          {s.shipment_id_display}
+                        </p>
+                        <p className="text-text-secondary text-xs">
+                          {s.origin_port_name} → {s.destination_port_name}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <StatusBadge status={s.status} />
+                        <p className="text-text-secondary text-xs mt-1">{s.progress_percent}%</p>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Active Disruptions */}
+          <div className="glass-card rounded-xl p-4">
+            <h2 className="text-text-primary font-semibold mb-4">Active Disruptions</h2>
+            {loading ? (
+              <div className="text-text-secondary text-sm text-center py-8">Loading…</div>
+            ) : disruptions.filter((d) => d.status !== 'RESOLVED').length === 0 ? (
+              <div className="text-success text-sm text-center py-8">✓ No active disruptions</div>
+            ) : (
+              <div className="space-y-3">
+                {disruptions
+                  .filter((d) => d.status !== 'RESOLVED')
+                  .slice(0, 5)
+                  .map((d) => (
+                    <div key={d.id} className="p-3 rounded-lg bg-bg border border-border/50">
+                      <div className="flex items-center justify-between">
+                        <p className="text-text-primary text-sm font-medium">{d.title}</p>
+                        <span
+                          className={`text-xs px-2 py-0.5 rounded-full ${
+                            d.severity === 'CRITICAL'
+                              ? 'bg-danger/20 text-danger'
+                              : d.severity === 'HIGH'
+                              ? 'bg-orange-500/20 text-orange-400'
+                              : d.severity === 'MEDIUM'
+                              ? 'bg-warning/20 text-warning'
+                              : 'bg-success/20 text-success'
+                          }`}
+                        >
+                          {d.severity}
+                        </span>
+                      </div>
+                      <p className="text-text-secondary text-xs mt-1">
+                        {d.type} · {d.status}
+                      </p>
+                    </div>
+                  ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
+</file>
+
+<file path="frontend/src/app/layout.tsx">
+'use client';
+
+// @ts-expect-error CSS import for global styles
+import './globals.css';
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <body className="bg-bg text-text-primary min-h-screen">
+        {children}
+      </body>
+    </html>
+  );
+}
+</file>
+
+<file path="frontend/src/hooks/useAuth.ts">
+'use client';
+import { useState, useCallback, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import api from '@/lib/api';
+import { AuthUser, LoginResponse } from '@/types';
+
+// ─── DEMO BYPASS ──────────────────────────────────────────────────────────────
+// Set NEXT_PUBLIC_BYPASS_AUTH=false in .env.local to disable demo mode.
+// When enabled (default), skips backend authentication for MVP demos.
+// The fake user is stored under the same keys the rest of the app expects.
+const BYPASS_AUTH = process.env.NEXT_PUBLIC_BYPASS_AUTH !== 'false';
+
+const FAKE_USER: AuthUser = {
+  id: '00000000-0000-0000-0000-000000000001',
+  email: 'import@globaltrade.com',
+  role: 'BUYER',
+  first_name: 'Demo',
+  last_name: 'User',
+  company_name: 'Global Trade Inc.',
+};
+
+// A JWT whose payload matches FAKE_USER (signature is intentionally invalid —
+// only used to satisfy the axios interceptor header; the backend is not called
+// in bypass mode).
+const FAKE_TOKEN =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9' +
+  '.eyJpZCI6IjAwMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAwMSIsImVtYWlsIjoiaW1wb3J0QGdsb2JhbHRyYWRlLmNvbSIsInJvbGUiOiJCVVlFUiJ9' +
+  '.bypass';
+
+function ensureBypassSession() {
+  if (typeof window === 'undefined') return;
+  if (!localStorage.getItem('voyager_user')) {
+    localStorage.setItem('voyager_token', FAKE_TOKEN);
+    localStorage.setItem('voyager_user', JSON.stringify(FAKE_USER));
+  }
+}
+// ──────────────────────────────────────────────────────────────────────────────
+
+export function useAuth() {
+  const router = useRouter();
+
+  // Initialize with null to avoid hydration mismatch
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  // Load from localStorage only on client after mount
+  useEffect(() => {
+    if (BYPASS_AUTH) {
+      ensureBypassSession();
+    }
+
+    const stored = localStorage.getItem('voyager_user');
+    if (stored) {
+      try {
+        setUser(JSON.parse(stored));
+      } catch (e) {
+        console.error('Failed to parse stored user:', e);
+      }
+    }
+    
+    setMounted(true);
+  }, []);
+
+  const login = useCallback(
+    async (email: string, password: string) => {
+      if (BYPASS_AUTH) {
+        // In bypass mode just accept any credentials and go straight to dashboard
+        ensureBypassSession();
+        setUser(FAKE_USER);
+        router.push('/dashboard');
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+      try {
+        const { data } = await api.post<LoginResponse>('/api/auth/login', { email, password });
+        localStorage.setItem('voyager_token', data.token);
+        localStorage.setItem('voyager_user', JSON.stringify(data.user));
+        setUser(data.user);
+        router.push('/dashboard');
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'Login failed';
+        setError(msg);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [router]
+  );
+
+  const logout = useCallback(() => {
+    localStorage.removeItem('voyager_token');
+    localStorage.removeItem('voyager_user');
+    setUser(null);
+    router.push('/login');
+  }, [router]);
+
+  const isAuthenticated = !!user;
+
+  return { user, loading, error, login, logout, isAuthenticated, mounted };
+}
+</file>
+
+<file path="frontend/src/lib/api.ts">
+import axios from 'axios';
+
+const api = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001',
+  headers: { 'Content-Type': 'application/json' },
+});
+
+api.interceptors.request.use((config) => {
+  if (typeof window !== 'undefined') {
+    const token = localStorage.getItem('voyager_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  }
+  return config;
+});
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401 && typeof window !== 'undefined') {
+      // In bypass mode the token is fake and the backend will reject it.
+      // Only redirect to /login when we're NOT in bypass mode (i.e. a real
+      // session expired).  Check for the bypass sentinel value in the token.
+      const token = localStorage.getItem('voyager_token') ?? '';
+      const isBypassToken = token.endsWith('.bypass');
+
+      if (isBypassToken) {
+        // Backend rejected our fake token — that's expected in bypass mode.
+        // Return a resolved response with empty data so components render
+        // gracefully with empty state rather than crashing or showing errors.
+        return Promise.resolve({ data: [] });
+      }
+
+      // Real session expired — clear storage and redirect to login.
+      localStorage.removeItem('voyager_token');
+      localStorage.removeItem('voyager_user');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
+export default api;
 </file>
 
 <file path="frontend/tsconfig.json">

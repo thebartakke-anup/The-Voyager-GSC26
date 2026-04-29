@@ -12,14 +12,17 @@ import dynamic from 'next/dynamic';
 const WorldMap = dynamic(() => import('@/components/map/WorldMap'), { ssr: false });
 
 export default function DashboardPage() {
-  const { user, logout, isAuthenticated } = useAuth();
+  const { user, logout, isAuthenticated, mounted } = useAuth();
   const router = useRouter();
   const [shipments, setShipments] = useState<Shipment[]>([]);
   const [disruptions, setDisruptions] = useState<Disruption[]>([]);
   const [loading, setLoading] = useState(true);
   const [apiError, setApiError] = useState(false);
 
+  // Wait for hydration AND auth check before redirecting
   useEffect(() => {
+    if (!mounted) return; // Still hydrating, don't redirect yet
+    
     if (!isAuthenticated) {
       router.push('/login');
       return;
@@ -45,7 +48,12 @@ export default function DashboardPage() {
     };
 
     fetchData();
-  }, [isAuthenticated, router]);
+  }, [mounted, isAuthenticated, router]);
+
+  // Show nothing while hydrating
+  if (!mounted) {
+    return null;
+  }
 
   const stats = {
     total: shipments.length,
