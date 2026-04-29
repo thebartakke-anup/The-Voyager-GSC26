@@ -17,7 +17,7 @@ export default function DashboardPage() {
   const [shipments, setShipments] = useState<Shipment[]>([]);
   const [disruptions, setDisruptions] = useState<Disruption[]>([]);
   const [loading, setLoading] = useState(true);
-  const [apiError, setApiError] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
 
   // Wait for hydration AND auth check before redirecting
   useEffect(() => {
@@ -30,7 +30,7 @@ export default function DashboardPage() {
 
     const fetchData = async () => {
       setLoading(true);
-      setApiError(false);
+      setApiError(null);
       try {
         const [shipmentsRes, disruptionsRes] = await Promise.all([
           api.get<Shipment[]>('/api/shipments'),
@@ -39,9 +39,8 @@ export default function DashboardPage() {
         setShipments(shipmentsRes.data);
         setDisruptions(disruptionsRes.data);
       } catch (err) {
-        console.warn('[Dashboard] API unavailable — rendering with empty data.', err);
-        setApiError(true);
-        // Keep empty arrays; the UI will show placeholder states.
+        console.error('[Dashboard] Failed to load data', err);
+        setApiError('Unable to load dashboard data. Check backend connection and login again.');
       } finally {
         setLoading(false);
       }
@@ -97,14 +96,9 @@ export default function DashboardPage() {
       </nav>
 
       <main className="flex-1 p-6 space-y-6">
-        {/* Backend offline banner */}
         {apiError && (
-          <div className="rounded-lg border border-warning/30 bg-warning/10 px-4 py-3 text-warning text-sm flex items-center gap-2">
-            <span>⚠️</span>
-            <span>
-              Backend unreachable — displaying demo shell. Start the backend and refresh to load
-              live data.
-            </span>
+          <div className="rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-danger text-sm">
+            {apiError}
           </div>
         )}
 
@@ -161,12 +155,7 @@ export default function DashboardPage() {
             ) : shipments.length === 0 ? (
               <div className="text-text-secondary text-sm text-center py-8 space-y-1">
                 <p>No shipments found</p>
-                {apiError && (
-                  <p className="text-xs opacity-60">
-                    Run <code className="bg-surface px-1 rounded">npm run seed</code> in the
-                    backend to load demo data
-                  </p>
-                )}
+
               </div>
             ) : (
               <div className="space-y-3">

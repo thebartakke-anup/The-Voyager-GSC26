@@ -19,12 +19,6 @@ export default function LoginPage() {
     await login(email, password);
   };
 
-  const demoUsers = [
-    { label: 'Buyer (Rotterdam)', email: 'import@globaltrade.com', password: 'password123' },
-    { label: 'Seller (Shanghai)', email: 'export@shanghaiexports.com', password: 'password123' },
-    { label: 'Captain (Vessel 1)', email: 'capt.zhang@vessel1.com', password: 'password123' },
-  ];
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-bg relative overflow-hidden">
       {/* Background grid */}
@@ -82,22 +76,6 @@ export default function LoginPage() {
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
-
-        <div className="mt-6">
-          <p className="text-text-secondary text-xs text-center mb-3">Quick Demo Login</p>
-          <div className="space-y-2">
-            {demoUsers.map((u) => (
-              <button
-                key={u.email}
-                onClick={() => { setEmail(u.email); setPassword(u.password); }}
-                className="w-full text-left px-3 py-2 rounded-lg bg-surface/50 border border-border hover:border-accent-primary/50 transition-colors"
-              >
-                <span className="text-xs text-accent-primary font-medium">{u.label}</span>
-                <span className="text-xs text-text-secondary ml-2">{u.email}</span>
-              </button>
-            ))}
-          </div>
-        </div>
       </motion.div>
     </div>
   );
