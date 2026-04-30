@@ -22,13 +22,38 @@ import simulationRoutes from './routes/simulation';
 
 const app: Express = express();
 
+const defaultAllowedOrigins = [
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+];
+
+const configuredOrigins = env.FRONTEND_URL
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+const allowedOrigins = new Set([...defaultAllowedOrigins, ...configuredOrigins]);
+
 // ============================================
 // SECURITY MIDDLEWARE
 // ============================================
 app.use(helmet());
 app.use(
   cors({
-    origin: env.FRONTEND_URL,
+    origin(origin, callback) {
+      // Allow non-browser tools (curl, Postman) and same-origin requests.
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+
+      if (allowedOrigins.has(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error(`Origin ${origin} is not allowed by CORS`));
+    },
     credentials: true,
     optionsSuccessStatus: 200,
   })
@@ -105,7 +130,7 @@ const wss = initWebSocket(server);
 // Log WebSocket connections
 wss.on('connection', (ws) => {
   console.log(`[WebSocket] New connection. Total clients: ${wss.clients.size}`);
-  
+
   ws.on('close', () => {
     console.log(`[WebSocket] Client disconnected. Total clients: ${wss.clients.size}`);
   });
@@ -125,7 +150,7 @@ server.listen(PORT, () => {
    - Environment: ${env.NODE_ENV}
    - HTTP Port: ${PORT}
    - WebSocket: ws://localhost:${PORT}
-   - Frontend URL: ${env.FRONTEND_URL}
+   - Allowed Frontend Origins: ${Array.from(allowedOrigins).join(', ')}
    - Database: ${env.DATABASE_URL.split('@')[1] || 'configured'}
   `);
   console.log(`✅ Server listening on http://localhost:${PORT}`);
@@ -139,7 +164,7 @@ server.listen(PORT, () => {
 // ============================================
 process.on('SIGTERM', () => {
   console.log('\n⚠️  SIGTERM signal received: closing HTTP server');
-  
+
   server.close(() => {
     console.log('✅ HTTP server closed');
     process.exit(0);
@@ -154,7 +179,7 @@ process.on('SIGTERM', () => {
 
 process.on('SIGINT', () => {
   console.log('\n⚠️  SIGINT signal received: closing HTTP server');
-  
+
   server.close(() => {
     console.log('✅ HTTP server closed');
     process.exit(0);
