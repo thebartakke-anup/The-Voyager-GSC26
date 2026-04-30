@@ -4,12 +4,11 @@ import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
-import { useSimulation } from '@/hooks/useSimulation';
 import api from '@/lib/api';
 import { Shipment, Disruption, Recommendation } from '@/types';
 import StatusBadge from '@/components/ui/StatusBadge';
 import DisruptionList from '@/components/disruptions/DisruptionList';
-import SimulationControls from '@/components/simulation/SimulationControls';
+import AppHeader from '@/components/layout/AppHeader';
 
 export default function ShipmentDetailPage() {
   const { isAuthenticated, user, logout } = useAuth();
@@ -21,8 +20,6 @@ export default function ShipmentDetailPage() {
   const [disruptions, setDisruptions] = useState<Disruption[]>([]);
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const { advance, reset } = useSimulation(id);
 
   useEffect(() => {
     if (!isAuthenticated) { router.push('/login'); return; }
@@ -46,23 +43,6 @@ export default function ShipmentDetailPage() {
     fetchAll();
   }, [isAuthenticated, router, id]);
 
-  const handleAdvance = async () => {
-    await advance(1);
-    // Refresh
-    const [sRes, dRes] = await Promise.all([
-      api.get<Shipment>(`/api/shipments/${id}`),
-      api.get<Disruption[]>(`/api/disruptions?shipment_id=${id}`),
-    ]);
-    setShipment(sRes.data);
-    setDisruptions(dRes.data);
-  };
-
-  const handleReset = async () => {
-    await reset();
-    const sRes = await api.get<Shipment>(`/api/shipments/${id}`);
-    setShipment(sRes.data);
-  };
-
   const handleApprove = async (recId: string) => {
     await api.put(`/api/recommendations/${recId}/approve`);
     const rRes = await api.get<Recommendation[]>(`/api/recommendations?shipment_id=${id}`);
@@ -73,20 +53,7 @@ export default function ShipmentDetailPage() {
 
   return (
     <div className="min-h-screen bg-bg flex flex-col">
-      <nav className="bg-surface border-b border-border px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <span className="text-2xl">🚢</span>
-          <span className="text-text-primary font-bold text-lg">Voyagers Tribute</span>
-        </div>
-        <div className="flex items-center gap-6">
-          <Link href="/dashboard" className="text-text-secondary hover:text-text-primary text-sm">Dashboard</Link>
-          <Link href="/shipments" className="text-accent-primary text-sm font-medium">Shipments</Link>
-          {user?.role === 'CAPTAIN' && (
-            <Link href="/captain" className="text-text-secondary hover:text-text-primary text-sm">Report</Link>
-          )}
-          <button onClick={logout} className="text-xs text-danger hover:text-danger/80">Logout</button>
-        </div>
-      </nav>
+      <AppHeader user={user} active="shipments" onLogout={logout} />
 
       <main className="flex-1 p-6">
         {loading ? (
@@ -204,14 +171,6 @@ export default function ShipmentDetailPage() {
                 </div>
               </div>
             </div>
-
-            {/* Simulation Controls */}
-            <SimulationControls
-              shipmentId={id}
-              simulationDay={shipment.simulation_day}
-              onAdvance={handleAdvance}
-              onReset={handleReset}
-            />
 
             {/* Disruptions */}
             <DisruptionList disruptions={disruptions} />
