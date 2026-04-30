@@ -8,6 +8,7 @@ import api from '@/lib/api';
 import { Shipment, Disruption } from '@/types';
 import StatusBadge from '@/components/ui/StatusBadge';
 import dynamic from 'next/dynamic';
+import AppHeader from '@/components/layout/AppHeader';
 
 const WorldMap = dynamic(() => import('@/components/map/WorldMap'), { ssr: false });
 
@@ -69,31 +70,7 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-bg flex flex-col">
       {/* Navbar */}
-      <nav className="bg-surface border-b border-border px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <span className="text-2xl">🚢</span>
-          <span className="text-text-primary font-bold text-lg">Voyagers Tribute</span>
-        </div>
-        <div className="flex items-center gap-6">
-          <Link href="/dashboard" className="text-accent-primary text-sm font-medium">
-            Dashboard
-          </Link>
-          <Link href="/shipments" className="text-text-secondary hover:text-text-primary text-sm">
-            Shipments
-          </Link>
-          {user?.role === 'CAPTAIN' && (
-            <Link href="/captain" className="text-text-secondary hover:text-text-primary text-sm">
-              Report
-            </Link>
-          )}
-          <div className="flex items-center gap-2">
-            <span className="text-text-secondary text-sm">{user?.first_name || user?.email}</span>
-            <button onClick={logout} className="text-xs text-danger hover:text-danger/80">
-              Logout
-            </button>
-          </div>
-        </div>
-      </nav>
+      <AppHeader user={user} active="dashboard" onLogout={logout} />
 
       <main className="flex-1 p-6 space-y-6">
         {apiError && (
